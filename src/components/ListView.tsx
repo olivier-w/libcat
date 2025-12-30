@@ -125,11 +125,14 @@ export function ListView() {
     }
   }
 
+  // Disable animation stagger for large lists to improve performance
+  const shouldStagger = sortedMovies.length <= 100
+  
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.02 },
+      transition: { staggerChildren: shouldStagger ? 0.02 : 0 },
     },
   }
 

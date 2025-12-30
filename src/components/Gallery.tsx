@@ -15,12 +15,15 @@ export function Gallery() {
     return tag ? `Tagged: ${tag.name}` : 'Movies'
   }
 
+  // Disable animation stagger for large lists to improve performance
+  const shouldStagger = filteredMovies.length <= 100
+  
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.03,
+        staggerChildren: shouldStagger ? 0.03 : 0,
       },
     },
   }

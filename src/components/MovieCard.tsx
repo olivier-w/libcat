@@ -1,15 +1,18 @@
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie } from '../types'
+import { useInView } from '../hooks/useInView'
 
 interface MovieCardProps {
   movie: Movie
   index: number
 }
 
-export function MovieCard({ movie, index }: MovieCardProps) {
+function MovieCardComponent({ movie, index }: MovieCardProps) {
   const { selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const isSelected = selectedMovies.some(m => m.id === movie.id)
+  const { ref, isInView } = useInView({ threshold: 0.1, rootMargin: '100px', triggerOnce: true })
 
   const handleDoubleClick = () => {
     window.api.playVideo(movie.file_path)
@@ -35,8 +38,12 @@ export function MovieCard({ movie, index }: MovieCardProps) {
     toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)
   }
 
+  const thumbnailUrl = getThumbnailUrl()
+  const shouldLoadImage = isInView && thumbnailUrl
+
   return (
     <motion.div
+      ref={ref}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={`movie-card relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer group ${
@@ -46,13 +53,19 @@ export function MovieCard({ movie, index }: MovieCardProps) {
       whileTap={{ scale: 0.98 }}
     >
       {/* Thumbnail */}
-      {getThumbnailUrl() ? (
-        <img
-          src={getThumbnailUrl()!}
-          alt={movie.title || 'Movie thumbnail'}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-        />
+      {thumbnailUrl ? (
+        <>
+          {shouldLoadImage ? (
+            <img
+              src={thumbnailUrl}
+              alt={movie.title || 'Movie thumbnail'}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-charcoal-800 to-charcoal-900 animate-pulse" />
+          )}
+        </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-charcoal-800 to-charcoal-900 flex items-center justify-center">
           <svg className="w-12 h-12 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,4 +152,21 @@ export function MovieCard({ movie, index }: MovieCardProps) {
     </motion.div>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render), false if different (re-render)
+  // We need to check selection state separately since it's not in props
+  // For now, let React.memo handle the comparison and we'll rely on the store's selection check
+  const moviePropsEqual = 
+    prevProps.movie.id === nextProps.movie.id &&
+    prevProps.movie.title === nextProps.movie.title &&
+    prevProps.movie.favorite === nextProps.movie.favorite &&
+    prevProps.movie.watched === nextProps.movie.watched &&
+    prevProps.movie.thumbnail_path === nextProps.movie.thumbnail_path &&
+    JSON.stringify(prevProps.movie.tags) === JSON.stringify(nextProps.movie.tags) &&
+    prevProps.index === nextProps.index
+  
+  return moviePropsEqual
+})
 
