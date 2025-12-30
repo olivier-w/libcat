@@ -1,9 +1,77 @@
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie } from '../types'
 
+type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
+type SortDirection = 'asc' | 'desc'
+
 export function ListView() {
   const { filteredMovies, selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
+  const [sortColumn, setSortColumn] = useState<SortColumn>('created_at')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
+  // Sort movies
+  const sortedMovies = useMemo(() => {
+    const sorted = [...filteredMovies].sort((a, b) => {
+      let aVal: any
+      let bVal: any
+
+      switch (sortColumn) {
+        case 'title':
+          aVal = (a.title || a.file_path).toLowerCase()
+          bVal = (b.title || b.file_path).toLowerCase()
+          break
+        case 'created_at':
+          aVal = new Date(a.created_at).getTime()
+          bVal = new Date(b.created_at).getTime()
+          break
+        case 'file_size':
+          aVal = a.file_size || 0
+          bVal = b.file_size || 0
+          break
+        case 'duration':
+          aVal = a.duration || 0
+          bVal = b.duration || 0
+          break
+        default:
+          return 0
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+    return sorted
+  }, [filteredMovies, sortColumn, sortDirection])
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection(column === 'created_at' ? 'desc' : 'asc')
+    }
+  }
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return (
+        <svg className="w-3 h-3 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      )
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    )
+  }
 
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return '-'
@@ -74,22 +142,46 @@ export function ListView() {
     <div className="flex-1 overflow-hidden flex flex-col">
       {/* Header */}
       <div className="grid grid-cols-[1fr,120px,100px,100px,80px] gap-4 px-4 py-3 bg-charcoal-800/50 border-b border-charcoal-700/50 text-xs font-semibold text-charcoal-400 uppercase tracking-wider">
-        <div>Filename</div>
-        <div>Added</div>
-        <div>Size</div>
-        <div>Duration</div>
+        <button
+          onClick={() => handleSort('title')}
+          className="flex items-center gap-1.5 hover:text-cream-200 transition-colors text-left"
+        >
+          Filename
+          <SortIcon column="title" />
+        </button>
+        <button
+          onClick={() => handleSort('created_at')}
+          className="flex items-center gap-1.5 hover:text-cream-200 transition-colors text-left"
+        >
+          Added
+          <SortIcon column="created_at" />
+        </button>
+        <button
+          onClick={() => handleSort('file_size')}
+          className="flex items-center gap-1.5 hover:text-cream-200 transition-colors text-left"
+        >
+          Size
+          <SortIcon column="file_size" />
+        </button>
+        <button
+          onClick={() => handleSort('duration')}
+          className="flex items-center gap-1.5 hover:text-cream-200 transition-colors text-left"
+        >
+          Duration
+          <SortIcon column="duration" />
+        </button>
         <div className="text-center">Fav</div>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredMovies.length > 0 ? (
+        {sortedMovies.length > 0 ? (
           <motion.div
             variants={container}
             initial="hidden"
             animate="show"
           >
-            {filteredMovies.map((movie, index) => {
+            {sortedMovies.map((movie, index) => {
               const isSelected = selectedMovies.some(m => m.id === movie.id)
               return (
               <motion.div
@@ -200,4 +292,3 @@ export function ListView() {
     </div>
   )
 }
-
