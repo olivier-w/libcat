@@ -76,13 +76,30 @@ function calculateFuzzyScore(text: string, query: string): number {
 
 /**
  * Filters and sorts tags using fuzzy search.
- * Returns tags sorted by relevance score (highest first), then by creation date (newest first).
+ * Returns tags filtered by query (if provided) and always sorted by creation date (newest first).
  */
 export function fuzzySearchTags(tags: Tag[], query: string): Tag[] {
   try {
     // Handle empty tags array
     if (!tags || tags.length === 0) {
       return []
+    }
+    
+    // Helper function to sort by creation date (newest first)
+    const sortByCreatedDate = (a: Tag, b: Tag): number => {
+      try {
+        if (!a.created_at || !b.created_at) {
+          return 0
+        }
+        const dateA = new Date(a.created_at).getTime()
+        const dateB = new Date(b.created_at).getTime()
+        if (isNaN(dateA) || isNaN(dateB)) {
+          return 0
+        }
+        return dateB - dateA
+      } catch (e) {
+        return 0
+      }
     }
     
     if (!query.trim()) {
@@ -95,21 +112,7 @@ export function fuzzySearchTags(tags: Tag[], query: string): Tag[] {
         return [...tags]
       }
       
-      return [...tags].sort((a, b) => {
-        try {
-          if (!a.created_at || !b.created_at) {
-            return 0
-          }
-          const dateA = new Date(a.created_at).getTime()
-          const dateB = new Date(b.created_at).getTime()
-          if (isNaN(dateA) || isNaN(dateB)) {
-            return 0
-          }
-          return dateB - dateA
-        } catch (e) {
-          return 0
-        }
-      })
+      return [...tags].sort(sortByCreatedDate)
     }
 
     // Calculate scores for all tags
@@ -119,30 +122,10 @@ export function fuzzySearchTags(tags: Tag[], query: string): Tag[] {
     }))
 
     // Filter out non-matches (score > 0)
-    const matches = results.filter(r => r.score > 0)
+    const matches = results.filter(r => r.score > 0).map(r => r.item)
 
-    // Sort by score (highest first), then by creation date (newest first)
-    matches.sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score
-      }
-      // Only sort by date if both tags have created_at
-      if (a.item.created_at && b.item.created_at) {
-        try {
-          const dateA = new Date(a.item.created_at).getTime()
-          const dateB = new Date(b.item.created_at).getTime()
-          if (isNaN(dateA) || isNaN(dateB)) {
-            return 0
-          }
-          return dateB - dateA
-        } catch (e) {
-          return 0
-        }
-      }
-      return 0
-    })
-
-    return matches.map(r => r.item)
+    // Always sort by creation date (newest first), regardless of search query
+    return matches.sort(sortByCreatedDate)
   } catch (error) {
     // If anything goes wrong, just return tags as-is to prevent breaking the UI
     console.error('Error in fuzzySearchTags:', error)
