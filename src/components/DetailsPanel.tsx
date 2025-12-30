@@ -6,7 +6,7 @@ import { StarRating } from './StarRating'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
 
 export function DetailsPanel() {
-  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection } = useLibraryStore()
+  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState } = useLibraryStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editYear, setEditYear] = useState('')
@@ -126,6 +126,23 @@ export function DetailsPanel() {
       setShowTagDropdown(false)
     } catch (error) {
       console.error('Failed to add tag:', error)
+    }
+  }
+
+  const handleCreateAndAddTag = async () => {
+    if (!tagSearchQuery.trim()) return
+    
+    try {
+      // Create the tag with default color
+      const newTag = await window.api.createTag(tagSearchQuery.trim(), '#f4a261')
+      addTagToState(newTag)
+      // Add the tag to the movie
+      await window.api.addTagToMovie(movie.id, newTag.id)
+      await loadMovies()
+      setTagSearchQuery('')
+      setShowTagDropdown(false)
+    } catch (error) {
+      console.error('Failed to create and add tag:', error)
     }
   }
 
@@ -311,6 +328,16 @@ export function DetailsPanel() {
                               <span className="truncate">{tag.name}</span>
                             </button>
                           ))
+                        ) : tagSearchQuery.trim() ? (
+                          <button
+                            onClick={handleCreateAndAddTag}
+                            className="w-full px-3 py-1.5 text-left text-sm text-amber-400 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>Create "{tagSearchQuery.trim()}"</span>
+                          </button>
                         ) : (
                           <p className="px-3 py-2 text-sm text-charcoal-500">No tags found</p>
                         )}
@@ -467,7 +494,7 @@ export function DetailsPanel() {
 
 // Bulk Actions Panel for multi-selection
 function BulkActionsPanel() {
-  const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState } = useLibraryStore()
+  const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState, addTagToState } = useLibraryStore()
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [bulkTagSearchQuery, setBulkTagSearchQuery] = useState('')
   const bulkTagSearchInputRef = useRef<HTMLInputElement>(null)
@@ -492,6 +519,25 @@ function BulkActionsPanel() {
       setShowTagDropdown(false)
     } catch (error) {
       console.error('Failed to bulk add tag:', error)
+    }
+  }
+
+  const handleBulkCreateAndAddTag = async () => {
+    if (!bulkTagSearchQuery.trim()) return
+    
+    try {
+      // Create the tag with default color
+      const newTag = await window.api.createTag(bulkTagSearchQuery.trim(), '#f4a261')
+      addTagToState(newTag)
+      // Add the tag to all selected movies
+      for (const movie of selectedMovies) {
+        await window.api.addTagToMovie(movie.id, newTag.id)
+      }
+      await loadMovies()
+      setBulkTagSearchQuery('')
+      setShowTagDropdown(false)
+    } catch (error) {
+      console.error('Failed to create and bulk add tag:', error)
     }
   }
 
@@ -657,6 +703,16 @@ function BulkActionsPanel() {
                           <span className="truncate">{tag.name}</span>
                         </button>
                       ))
+                    ) : bulkTagSearchQuery.trim() ? (
+                      <button
+                        onClick={handleBulkCreateAndAddTag}
+                        className="w-full px-3 py-2 text-left text-sm text-amber-400 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Create "{bulkTagSearchQuery.trim()}"</span>
+                      </button>
                     ) : (
                       <p className="px-3 py-2 text-sm text-charcoal-500">
                         {tags.length === 0 ? 'No tags available' : 'No tags found'}
