@@ -1,18 +1,19 @@
-import { memo } from 'react'
+import { memo, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie } from '../types'
-import { useInView } from '../hooks/useInView'
 
 interface MovieCardProps {
   movie: Movie
   index: number
+  shouldLoadImage: boolean
+  onObserve: (element: HTMLElement | null) => void
 }
 
-function MovieCardComponent({ movie, index }: MovieCardProps) {
+function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieCardProps) {
   const { selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const isSelected = selectedMovies.some(m => m.id === movie.id)
-  const { ref, isInView } = useInView({ threshold: 0.1, rootMargin: '100px', triggerOnce: true })
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   const handleDoubleClick = () => {
     window.api.playVideo(movie.file_path)
@@ -38,41 +39,44 @@ function MovieCardComponent({ movie, index }: MovieCardProps) {
     toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)
   }
 
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true)
+  }, [])
+
   const thumbnailUrl = getThumbnailUrl()
-  const shouldLoadImage = isInView && thumbnailUrl
 
   return (
-    <motion.div
-      ref={ref}
+    <div
+      ref={onObserve}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={`movie-card relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer group ${
         isSelected ? 'movie-card-selected' : ''
       }`}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
     >
-      {/* Thumbnail */}
-      {thumbnailUrl ? (
-        <>
-          {shouldLoadImage ? (
-            <img
-              src={thumbnailUrl}
-              alt={movie.title || 'Movie thumbnail'}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-charcoal-800 to-charcoal-900 animate-pulse" />
-          )}
-        </>
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-charcoal-800 to-charcoal-900 flex items-center justify-center">
-          <svg className="w-12 h-12 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </div>
-      )}
+      {/* Thumbnail with smooth fade-in */}
+      <div className="thumbnail-container">
+        {/* Always show placeholder for smooth crossfade */}
+        <div className="thumbnail-placeholder" />
+        
+        {thumbnailUrl && shouldLoadImage && (
+          <img
+            src={thumbnailUrl}
+            alt={movie.title || 'Movie thumbnail'}
+            className={`thumbnail-image ${imageLoaded ? 'loaded' : ''}`}
+            onLoad={handleImageLoad}
+          />
+        )}
+        
+        {/* No thumbnail fallback icon */}
+        {!thumbnailUrl && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-12 h-12 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
 
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
@@ -140,33 +144,42 @@ function MovieCardComponent({ movie, index }: MovieCardProps) {
 
       {/* Play Button on Hover */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          className="w-14 h-14 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl"
-        >
+        <div className="w-14 h-14 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
           <svg className="w-6 h-6 text-charcoal-900 ml-1" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
           </svg>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-// Memoize component to prevent unnecessary re-renders
+// Optimized memo comparison - avoid JSON.stringify
 export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
-  // Return true if props are equal (skip re-render), false if different (re-render)
-  // We need to check selection state separately since it's not in props
-  // For now, let React.memo handle the comparison and we'll rely on the store's selection check
-  const moviePropsEqual = 
-    prevProps.movie.id === nextProps.movie.id &&
-    prevProps.movie.title === nextProps.movie.title &&
-    prevProps.movie.favorite === nextProps.movie.favorite &&
-    prevProps.movie.watched === nextProps.movie.watched &&
-    prevProps.movie.thumbnail_path === nextProps.movie.thumbnail_path &&
-    JSON.stringify(prevProps.movie.tags) === JSON.stringify(nextProps.movie.tags) &&
-    prevProps.index === nextProps.index
+  // Quick checks first
+  if (prevProps.movie.id !== nextProps.movie.id) return false
+  if (prevProps.index !== nextProps.index) return false
+  if (prevProps.shouldLoadImage !== nextProps.shouldLoadImage) return false
   
-  return moviePropsEqual
+  // Check mutable movie properties
+  if (prevProps.movie.title !== nextProps.movie.title) return false
+  if (prevProps.movie.favorite !== nextProps.movie.favorite) return false
+  if (prevProps.movie.watched !== nextProps.movie.watched) return false
+  if (prevProps.movie.thumbnail_path !== nextProps.movie.thumbnail_path) return false
+  
+  // For tags, just check length and reference - deep equality rarely needed
+  const prevTags = prevProps.movie.tags
+  const nextTags = nextProps.movie.tags
+  if (prevTags === nextTags) return true
+  if (!prevTags || !nextTags) return prevTags === nextTags
+  if (prevTags.length !== nextTags.length) return false
+  
+  // Same length, same reference check for first few items
+  for (let i = 0; i < Math.min(prevTags.length, 3); i++) {
+    if (prevTags[i].id !== nextTags[i].id || prevTags[i].color !== nextTags[i].color) {
+      return false
+    }
+  }
+  
+  return true
 })
-

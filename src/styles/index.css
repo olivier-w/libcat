@@ -111,6 +111,36 @@ input:focus, button:focus, select:focus {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
+.movie-card:active {
+  transform: scale(0.98);
+}
+
+/* Smooth thumbnail fade-in */
+.thumbnail-container {
+  position: absolute;
+  inset: 0;
+}
+
+.thumbnail-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #2f2f4f 0%, #1a1a2e 100%);
+}
+
+.thumbnail-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.thumbnail-image.loaded {
+  opacity: 1;
+}
+
 /* Selected movie card - ensure border is always visible, even on hover */
 .movie-card-selected {
   border: 3px solid rgba(251, 191, 36, 1);

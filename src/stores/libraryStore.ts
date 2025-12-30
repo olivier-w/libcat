@@ -193,18 +193,43 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
   
   applyFilter: async () => {
-    const { movies, activeFilter, searchQuery, selectedMovies, selectedMovie } = get()
+    const { movies, activeFilter, searchQuery, selectedMovies, selectedMovie, tags } = get()
     let filtered = [...movies]
     
-    // Apply search filter
+    // Apply search filter with multi-tag support
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (movie) =>
-          movie.title?.toLowerCase().includes(query) ||
-          movie.notes?.toLowerCase().includes(query) ||
-          movie.file_path.toLowerCase().includes(query)
-      )
+      const queryTerms = searchQuery.toLowerCase().split(/\s+/).filter(t => t)
+      
+      // Separate terms into tag matches and text search terms
+      const matchedTagIds: number[] = []
+      const textTerms: string[] = []
+      
+      for (const term of queryTerms) {
+        const matchingTag = tags.find(t => t.name.toLowerCase() === term)
+        if (matchingTag) {
+          matchedTagIds.push(matchingTag.id)
+        } else {
+          textTerms.push(term)
+        }
+      }
+      
+      // Filter by ALL matched tags (AND logic)
+      if (matchedTagIds.length > 0) {
+        filtered = filtered.filter(movie =>
+          matchedTagIds.every(tagId => movie.tags?.some(t => t.id === tagId))
+        )
+      }
+      
+      // Filter by text terms in title/notes/path
+      if (textTerms.length > 0) {
+        filtered = filtered.filter(movie =>
+          textTerms.every(term =>
+            movie.title?.toLowerCase().includes(term) ||
+            movie.notes?.toLowerCase().includes(term) ||
+            movie.file_path.toLowerCase().includes(term)
+          )
+        )
+      }
     }
     
     // Apply category filter

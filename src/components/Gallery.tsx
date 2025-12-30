@@ -1,10 +1,14 @@
+import { useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { MovieCard } from './MovieCard'
 import { ListView } from './ListView'
+import { useVisibleItems } from '../hooks/useVisibleItems'
 
 export function Gallery() {
   const { filteredMovies, activeFilter, tags, viewMode, setViewMode } = useLibraryStore()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { observe, isVisible } = useVisibleItems(scrollContainerRef)
 
   const getFilterTitle = () => {
     if (activeFilter === 'all') return 'All Movies'
@@ -15,23 +19,15 @@ export function Gallery() {
     return tag ? `Tagged: ${tag.name}` : 'Movies'
   }
 
-  // Disable animation stagger for large lists to improve performance
-  const shouldStagger = filteredMovies.length <= 100
-  
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: shouldStagger ? 0.03 : 0,
-      },
+  // Create a stable callback for each movie to register with observer
+  const createObserveCallback = useCallback(
+    (movieId: number) => (element: HTMLElement | null) => {
+      if (element) {
+        observe(element, movieId)
+      }
     },
-  }
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  }
+    [observe]
+  )
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -85,20 +81,19 @@ export function Gallery() {
       {viewMode === 'list' ? (
         <ListView />
       ) : (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
           {filteredMovies.length > 0 ? (
-            <motion.div
-              variants={container}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5"
-            >
-{filteredMovies.map((movie, index) => (
-              <motion.div key={movie.id} variants={item}>
-                <MovieCard movie={movie} index={index} />
-              </motion.div>
-            ))}
-            </motion.div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
+              {filteredMovies.map((movie, index) => (
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  index={index}
+                  shouldLoadImage={isVisible(movie.id)}
+                  onObserve={createObserveCallback(movie.id)}
+                />
+              ))}
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 rounded-full bg-charcoal-800/50 flex items-center justify-center mb-4">
@@ -119,4 +114,3 @@ export function Gallery() {
     </div>
   )
 }
-
