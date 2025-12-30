@@ -11,7 +11,8 @@
     "rootDir": "electron",
     "declaration": false,
     "sourceMap": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "composite": true
   },
   "include": ["electron/**/*.ts"]
 }
