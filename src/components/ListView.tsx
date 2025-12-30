@@ -3,7 +3,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie } from '../types'
 
 export function ListView() {
-  const { filteredMovies, selectedMovie, setSelectedMovie, updateMovieInState } = useLibraryStore()
+  const { filteredMovies, selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
 
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return '-'
@@ -89,14 +89,16 @@ export function ListView() {
             initial="hidden"
             animate="show"
           >
-            {filteredMovies.map((movie) => (
+            {filteredMovies.map((movie, index) => {
+              const isSelected = selectedMovies.some(m => m.id === movie.id)
+              return (
               <motion.div
                 key={movie.id}
                 variants={item}
-                onClick={() => setSelectedMovie(movie)}
+                onClick={(e) => toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)}
                 onDoubleClick={() => handleDoubleClick(movie)}
                 className={`grid grid-cols-[1fr,120px,100px,100px,80px] gap-4 px-4 py-3 border-b border-charcoal-800/50 cursor-pointer transition-colors hover:bg-charcoal-800/30 ${
-                  selectedMovie?.id === movie.id ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''
+                  isSelected ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''
                 }`}
               >
                 {/* Filename */}
@@ -126,7 +128,7 @@ export function ListView() {
                   
                   <div className="min-w-0">
                     <p className={`text-sm truncate ${
-                      selectedMovie?.id === movie.id ? 'text-amber-400' : 'text-cream-100'
+                      isSelected ? 'text-amber-400' : 'text-cream-100'
                     }`}>
                       {movie.title || getFileName(movie.file_path)}
                     </p>
@@ -179,7 +181,7 @@ export function ListView() {
                   </motion.button>
                 </div>
               </motion.div>
-            ))}
+            )})}
           </motion.div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">

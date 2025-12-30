@@ -4,11 +4,12 @@ import type { Movie } from '../types'
 
 interface MovieCardProps {
   movie: Movie
+  index: number
 }
 
-export function MovieCard({ movie }: MovieCardProps) {
-  const { selectedMovie, setSelectedMovie, updateMovieInState } = useLibraryStore()
-  const isSelected = selectedMovie?.id === movie.id
+export function MovieCard({ movie, index }: MovieCardProps) {
+  const { selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
+  const isSelected = selectedMovies.some(m => m.id === movie.id)
 
   const handleDoubleClick = () => {
     window.api.playVideo(movie.file_path)
@@ -30,9 +31,13 @@ export function MovieCard({ movie }: MovieCardProps) {
     return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
   }
 
+  const handleClick = (e: React.MouseEvent) => {
+    toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)
+  }
+
   return (
     <motion.div
-      onClick={() => setSelectedMovie(movie)}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={`movie-card relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer group ${
         isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-charcoal-900' : ''

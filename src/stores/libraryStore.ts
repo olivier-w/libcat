@@ -9,6 +9,8 @@ interface LibraryState {
   
   // Selection & UI state
   selectedMovie: Movie | null
+  selectedMovies: Movie[]
+  lastSelectedIndex: number | null
   activeFilter: FilterType
   searchQuery: string
   isScanning: boolean
@@ -20,6 +22,9 @@ interface LibraryState {
   setTags: (tags: Tag[]) => void
   setFilteredMovies: (movies: Movie[]) => void
   setSelectedMovie: (movie: Movie | null) => void
+  setSelectedMovies: (movies: Movie[]) => void
+  toggleMovieSelection: (movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean) => void
+  clearSelection: () => void
   setActiveFilter: (filter: FilterType) => void
   setSearchQuery: (query: string) => void
   setIsScanning: (isScanning: boolean) => void
@@ -44,6 +49,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   tags: [],
   filteredMovies: [],
   selectedMovie: null,
+  selectedMovies: [],
+  lastSelectedIndex: null,
   activeFilter: 'all',
   searchQuery: '',
   isScanning: false,
@@ -54,7 +61,44 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setMovies: (movies) => set({ movies }),
   setTags: (tags) => set({ tags }),
   setFilteredMovies: (movies) => set({ filteredMovies: movies }),
-  setSelectedMovie: (movie) => set({ selectedMovie: movie }),
+  setSelectedMovie: (movie) => set({ selectedMovie: movie, selectedMovies: movie ? [movie] : [], lastSelectedIndex: null }),
+  setSelectedMovies: (movies) => set({ selectedMovies: movies, selectedMovie: movies.length === 1 ? movies[0] : null }),
+  
+  toggleMovieSelection: (movie, index, shiftKey, ctrlKey) => {
+    const { selectedMovies, lastSelectedIndex, filteredMovies } = get()
+    
+    if (shiftKey && lastSelectedIndex !== null) {
+      // Shift+click: select range
+      const start = Math.min(lastSelectedIndex, index)
+      const end = Math.max(lastSelectedIndex, index)
+      const rangeMovies = filteredMovies.slice(start, end + 1)
+      set({ 
+        selectedMovies: rangeMovies, 
+        selectedMovie: rangeMovies.length === 1 ? rangeMovies[0] : null 
+      })
+    } else if (ctrlKey) {
+      // Ctrl+click: toggle individual selection
+      const isSelected = selectedMovies.some(m => m.id === movie.id)
+      const newSelection = isSelected
+        ? selectedMovies.filter(m => m.id !== movie.id)
+        : [...selectedMovies, movie]
+      set({ 
+        selectedMovies: newSelection, 
+        selectedMovie: newSelection.length === 1 ? newSelection[0] : null,
+        lastSelectedIndex: index 
+      })
+    } else {
+      // Normal click: single selection
+      set({ 
+        selectedMovies: [movie], 
+        selectedMovie: movie, 
+        lastSelectedIndex: index 
+      })
+    }
+  },
+  
+  clearSelection: () => set({ selectedMovies: [], selectedMovie: null, lastSelectedIndex: null }),
+  
   setActiveFilter: (filter) => {
     set({ activeFilter: filter })
     get().applyFilter()

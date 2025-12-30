@@ -90,11 +90,11 @@ export function Gallery() {
               animate="show"
               className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5"
             >
-              {filteredMovies.map((movie) => (
-                <motion.div key={movie.id} variants={item}>
-                  <MovieCard movie={movie} />
-                </motion.div>
-              ))}
+{filteredMovies.map((movie, index) => (
+              <motion.div key={movie.id} variants={item}>
+                <MovieCard movie={movie} index={index} />
+              </motion.div>
+            ))}
             </motion.div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center">

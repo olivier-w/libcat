@@ -5,22 +5,25 @@ import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
 
 export function DetailsPanel() {
-  const { selectedMovie, tags, updateMovieInState, removeMovieFromState, loadMovies } = useLibraryStore()
+  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection } = useLibraryStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editYear, setEditYear] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [showTagDropdown, setShowTagDropdown] = useState(false)
 
+  const isMultiSelect = selectedMovies.length > 1
+
   useEffect(() => {
-    if (selectedMovie) {
+    if (selectedMovie && !isMultiSelect) {
       setEditTitle(selectedMovie.title || '')
       setEditYear(selectedMovie.year?.toString() || '')
       setEditNotes(selectedMovie.notes || '')
     }
-  }, [selectedMovie])
+  }, [selectedMovie, isMultiSelect])
 
-  if (!selectedMovie) {
+  // No selection
+  if (selectedMovies.length === 0) {
     return (
       <aside className="w-80 glass border-l border-charcoal-700/50 flex flex-col items-center justify-center text-center p-6">
         <div className="w-16 h-16 rounded-full bg-charcoal-800/50 flex items-center justify-center mb-4">
@@ -30,13 +33,22 @@ export function DetailsPanel() {
         </div>
         <h3 className="text-sm font-medium text-cream-300 mb-1">No movie selected</h3>
         <p className="text-xs text-charcoal-400">Click on a movie to see details</p>
+        <p className="text-xs text-charcoal-500 mt-2">Ctrl+click or Shift+click for multi-select</p>
       </aside>
     )
   }
 
+  // Multi-selection panel
+  if (isMultiSelect) {
+    return <BulkActionsPanel />
+  }
+
+  // Single selection - original panel (selectedMovie is guaranteed here)
+  const movie = selectedMovie!
+
   const getThumbnailUrl = () => {
-    if (!selectedMovie.thumbnail_path) return null
-    return `local-file:///${selectedMovie.thumbnail_path.replace(/\\/g, '/')}`
+    if (!movie.thumbnail_path) return null
+    return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
   }
 
   const handleSave = async () => {
@@ -46,8 +58,8 @@ export function DetailsPanel() {
         year: editYear ? parseInt(editYear) : null,
         notes: editNotes || null,
       }
-      await window.api.updateMovie(selectedMovie.id, data)
-      updateMovieInState(selectedMovie.id, data)
+      await window.api.updateMovie(movie.id, data)
+      updateMovieInState(movie.id, data)
       setIsEditing(false)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -56,8 +68,8 @@ export function DetailsPanel() {
 
   const handleRatingChange = async (rating: number) => {
     try {
-      await window.api.updateMovie(selectedMovie.id, { rating })
-      updateMovieInState(selectedMovie.id, { rating })
+      await window.api.updateMovie(movie.id, { rating })
+      updateMovieInState(movie.id, { rating })
     } catch (error) {
       console.error('Failed to update rating:', error)
     }
@@ -65,8 +77,8 @@ export function DetailsPanel() {
 
   const handleWatchedToggle = async () => {
     try {
-      await window.api.updateMovie(selectedMovie.id, { watched: !selectedMovie.watched })
-      updateMovieInState(selectedMovie.id, { watched: !selectedMovie.watched })
+      await window.api.updateMovie(movie.id, { watched: !movie.watched })
+      updateMovieInState(movie.id, { watched: !movie.watched })
     } catch (error) {
       console.error('Failed to toggle watched:', error)
     }
@@ -75,8 +87,8 @@ export function DetailsPanel() {
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to remove this movie from your library?')) return
     try {
-      await window.api.deleteMovie(selectedMovie.id)
-      removeMovieFromState(selectedMovie.id)
+      await window.api.deleteMovie(movie.id)
+      removeMovieFromState(movie.id)
     } catch (error) {
       console.error('Failed to delete:', error)
     }
@@ -84,7 +96,7 @@ export function DetailsPanel() {
 
   const handleAddTag = async (tagId: number) => {
     try {
-      await window.api.addTagToMovie(selectedMovie.id, tagId)
+      await window.api.addTagToMovie(movie.id, tagId)
       await loadMovies()
       setShowTagDropdown(false)
     } catch (error) {
@@ -94,7 +106,7 @@ export function DetailsPanel() {
 
   const handleRemoveTag = async (tagId: number) => {
     try {
-      await window.api.removeTagFromMovie(selectedMovie.id, tagId)
+      await window.api.removeTagFromMovie(movie.id, tagId)
       await loadMovies()
     } catch (error) {
       console.error('Failed to remove tag:', error)
@@ -103,9 +115,9 @@ export function DetailsPanel() {
 
   const handleRegenerateThumbnail = async () => {
     try {
-      const newPath = await window.api.regenerateThumbnail(selectedMovie.id, selectedMovie.file_path)
+      const newPath = await window.api.regenerateThumbnail(movie.id, movie.file_path)
       if (newPath) {
-        updateMovieInState(selectedMovie.id, { thumbnail_path: newPath })
+        updateMovieInState(movie.id, { thumbnail_path: newPath })
       }
     } catch (error) {
       console.error('Failed to regenerate thumbnail:', error)
@@ -114,9 +126,9 @@ export function DetailsPanel() {
 
   const handleSetCustomThumbnail = async () => {
     try {
-      const newPath = await window.api.setCustomThumbnail(selectedMovie.id)
+      const newPath = await window.api.setCustomThumbnail(movie.id)
       if (newPath) {
-        updateMovieInState(selectedMovie.id, { thumbnail_path: newPath })
+        updateMovieInState(movie.id, { thumbnail_path: newPath })
       }
     } catch (error) {
       console.error('Failed to set custom thumbnail:', error)
@@ -124,14 +136,14 @@ export function DetailsPanel() {
   }
 
   const availableTags = tags.filter(
-    (tag) => !selectedMovie.tags?.some((t) => t.id === tag.id)
+    (tag) => !movie.tags?.some((t) => t.id === tag.id)
   )
 
   return (
     <aside className="w-80 glass border-l border-charcoal-700/50 flex flex-col overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div
-          key={selectedMovie.id}
+          key={movie.id}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -142,7 +154,7 @@ export function DetailsPanel() {
             {getThumbnailUrl() ? (
               <img
                 src={getThumbnailUrl()!}
-                alt={selectedMovie.title || 'Movie thumbnail'}
+                alt={movie.title || 'Movie thumbnail'}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -193,10 +205,10 @@ export function DetailsPanel() {
             ) : (
               <div>
                 <h2 className="font-heading text-lg font-semibold text-cream-100 leading-tight">
-                  {selectedMovie.title || 'Untitled'}
+                  {movie.title || 'Untitled'}
                 </h2>
-                {selectedMovie.year && (
-                  <p className="text-sm text-charcoal-400 mt-1">{selectedMovie.year}</p>
+                {movie.year && (
+                  <p className="text-sm text-charcoal-400 mt-1">{movie.year}</p>
                 )}
               </div>
             )}
@@ -206,7 +218,7 @@ export function DetailsPanel() {
               <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
                 Rating
               </label>
-              <StarRating value={selectedMovie.rating || 0} onChange={handleRatingChange} />
+              <StarRating value={movie.rating || 0} onChange={handleRatingChange} />
             </div>
 
             {/* Tags */}
@@ -215,7 +227,7 @@ export function DetailsPanel() {
                 Tags
               </label>
               <div className="flex flex-wrap gap-2">
-                {selectedMovie.tags?.map((tag) => (
+                {movie.tags?.map((tag) => (
                   <TagPill
                     key={tag.id}
                     tag={tag}
@@ -270,7 +282,7 @@ export function DetailsPanel() {
                 />
               ) : (
                 <p className="text-sm text-cream-300 leading-relaxed">
-                  {selectedMovie.notes || (
+                  {movie.notes || (
                     <span className="text-charcoal-500 italic">No notes</span>
                   )}
                 </p>
@@ -283,10 +295,10 @@ export function DetailsPanel() {
                 Location
               </label>
               <button
-                onClick={() => window.api.openInExplorer(selectedMovie.file_path)}
+                onClick={() => window.api.openInExplorer(movie.file_path)}
                 className="text-xs text-amber-400 hover:text-amber-300 transition-colors break-all text-left"
               >
-                {selectedMovie.file_path}
+                {movie.file_path}
               </button>
             </div>
           </div>
@@ -314,7 +326,7 @@ export function DetailsPanel() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => window.api.playVideo(selectedMovie.file_path)}
+                    onClick={() => window.api.playVideo(movie.file_path)}
                     className="flex-1 py-2.5 rounded-lg gradient-accent text-charcoal-900 text-sm font-semibold flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -334,7 +346,7 @@ export function DetailsPanel() {
                   <button
                     onClick={handleWatchedToggle}
                     className={`flex-1 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${
-                      selectedMovie.watched
+                      movie.watched
                         ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                         : 'bg-charcoal-800 text-cream-300 hover:bg-charcoal-700'
                     }`}
@@ -342,7 +354,7 @@ export function DetailsPanel() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    {selectedMovie.watched ? 'Watched' : 'Mark Watched'}
+                    {movie.watched ? 'Watched' : 'Mark Watched'}
                   </button>
                   <button
                     onClick={handleDelete}
@@ -356,6 +368,231 @@ export function DetailsPanel() {
           </div>
         </motion.div>
       </AnimatePresence>
+    </aside>
+  )
+}
+
+// Bulk Actions Panel for multi-selection
+function BulkActionsPanel() {
+  const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState } = useLibraryStore()
+  const [showTagDropdown, setShowTagDropdown] = useState(false)
+
+  const handleBulkAddTag = async (tagId: number) => {
+    try {
+      for (const movie of selectedMovies) {
+        await window.api.addTagToMovie(movie.id, tagId)
+      }
+      await loadMovies()
+      setShowTagDropdown(false)
+    } catch (error) {
+      console.error('Failed to bulk add tag:', error)
+    }
+  }
+
+  const handleBulkRemoveTag = async (tagId: number) => {
+    try {
+      for (const movie of selectedMovies) {
+        await window.api.removeTagFromMovie(movie.id, tagId)
+      }
+      await loadMovies()
+    } catch (error) {
+      console.error('Failed to bulk remove tag:', error)
+    }
+  }
+
+  const handleBulkMarkWatched = async (watched: boolean) => {
+    try {
+      for (const movie of selectedMovies) {
+        await window.api.updateMovie(movie.id, { watched })
+        updateMovieInState(movie.id, { watched })
+      }
+    } catch (error) {
+      console.error('Failed to bulk update watched:', error)
+    }
+  }
+
+  const handleBulkToggleFavorite = async (favorite: boolean) => {
+    try {
+      for (const movie of selectedMovies) {
+        await window.api.updateMovie(movie.id, { favorite })
+        updateMovieInState(movie.id, { favorite })
+      }
+    } catch (error) {
+      console.error('Failed to bulk update favorite:', error)
+    }
+  }
+
+  // Find common tags among selected movies
+  const getCommonTags = () => {
+    if (selectedMovies.length === 0) return []
+    const firstMovieTags = selectedMovies[0].tags || []
+    return firstMovieTags.filter(tag =>
+      selectedMovies.every(movie => movie.tags?.some(t => t.id === tag.id))
+    )
+  }
+
+  const commonTags = getCommonTags()
+
+  return (
+    <aside className="w-80 glass border-l border-charcoal-700/50 flex flex-col overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex-1 flex flex-col"
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-charcoal-700/50">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-heading text-lg font-semibold text-cream-100">
+              Bulk Actions
+            </h2>
+            <button
+              onClick={clearSelection}
+              className="text-xs text-charcoal-400 hover:text-cream-200 transition-colors"
+            >
+              Clear selection
+            </button>
+          </div>
+          <p className="text-sm text-amber-400">
+            {selectedMovies.length} movies selected
+          </p>
+        </div>
+
+        {/* Selected Movies Preview */}
+        <div className="p-4 border-b border-charcoal-700/50">
+          <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
+            Selected
+          </label>
+          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+            {selectedMovies.slice(0, 10).map((movie) => (
+              <span
+                key={movie.id}
+                className="text-xs bg-charcoal-800 text-cream-300 px-2 py-1 rounded truncate max-w-[120px]"
+                title={movie.title || movie.file_path}
+              >
+                {movie.title || 'Untitled'}
+              </span>
+            ))}
+            {selectedMovies.length > 10 && (
+              <span className="text-xs text-charcoal-400 px-2 py-1">
+                +{selectedMovies.length - 10} more
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bulk Tag Actions */}
+        <div className="p-4 space-y-4 flex-1">
+          {/* Add Tags */}
+          <div>
+            <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
+              Add Tag to All
+            </label>
+            <div className="relative">
+              <button
+                onClick={() => setShowTagDropdown(!showTagDropdown)}
+                className="w-full px-3 py-2 rounded-lg bg-charcoal-800 border border-charcoal-700 text-cream-200 text-sm hover:bg-charcoal-700 transition-colors flex items-center justify-between"
+              >
+                <span>Select a tag...</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showTagDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10 max-h-48 overflow-y-auto">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleBulkAddTag(tag.id)}
+                      className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      {tag.name}
+                    </button>
+                  ))}
+                  {tags.length === 0 && (
+                    <p className="px-3 py-2 text-sm text-charcoal-500">No tags available</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Common Tags (can remove) */}
+          {commonTags.length > 0 && (
+            <div>
+              <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
+                Remove Common Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {commonTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleBulkRemoveTag(tag.id)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-80"
+                    style={{ 
+                      backgroundColor: `${tag.color}20`,
+                      color: tag.color,
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    {tag.name}
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bulk Actions */}
+        <div className="p-4 border-t border-charcoal-700/50 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleBulkMarkWatched(true)}
+              className="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm hover:bg-green-500/30 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Mark Watched
+            </button>
+            <button
+              onClick={() => handleBulkMarkWatched(false)}
+              className="flex-1 py-2 rounded-lg bg-charcoal-800 text-cream-300 text-sm hover:bg-charcoal-700 transition-colors"
+            >
+              Unwatched
+            </button>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleBulkToggleFavorite(true)}
+              className="flex-1 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              Favorite
+            </button>
+            <button
+              onClick={() => handleBulkToggleFavorite(false)}
+              className="flex-1 py-2 rounded-lg bg-charcoal-800 text-cream-300 text-sm hover:bg-charcoal-700 transition-colors"
+            >
+              Unfavorite
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </aside>
   )
 }
