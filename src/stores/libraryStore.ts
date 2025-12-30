@@ -321,7 +321,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   
   addTagToState: (tag) => {
     set((state) => ({
-      tags: [...state.tags, tag].sort((a, b) => a.name.localeCompare(b.name)),
+      tags: [...state.tags, tag].sort((a, b) => {
+        // Sort by creation date (newest first), fallback to id if no created_at
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        }
+        return (b.id || 0) - (a.id || 0)
+      }),
     }))
   },
   
