@@ -107,6 +107,19 @@ libcat/
 - [ ] if pw protected, encrypt thumbnails, tags, filters, data
 - [ ] add to favorites from detailspanel
 
+## FAQs
+### How do I regenerate thumbnails?
+Delete the thumbnails folder, then run the following in the console: 
+```
+// Get all movies and regenerate their thumbnails
+const movies = await window.api.getMovies()
+for (const movie of movies) {
+  if (movie.file_path) {
+    await window.api.regenerateThumbnail(movie.id, movie.file_path)
+    console.log(`Regenerated thumbnail for: ${movie.title}`)
+  }
+}
+```
 
 ## License
 

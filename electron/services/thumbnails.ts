@@ -111,7 +111,10 @@ export class ThumbnailService {
     ffmpeg(videoPath)
       .seekInput(timestamp)
       .frames(1)
-      .size('400x?')  // 400px width, maintain aspect ratio
+      .size('800x?')  // 400px width, maintain aspect ratio
+      .outputOptions([
+        '-q:v', '2'  // High quality JPEG (scale 1-31, lower = better quality)
+      ])
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
