@@ -5,7 +5,7 @@ import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
 
 export function DetailsPanel() {
-  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection } = useLibraryStore()
+  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, removeMoviesFromState, loadMovies, clearSelection } = useLibraryStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editYear, setEditYear] = useState('')
@@ -89,6 +89,10 @@ export function DetailsPanel() {
     try {
       await window.api.deleteMovie(movie.id)
       removeMovieFromState(movie.id)
+      // Clear selection if the deleted movie was selected
+      if (selectedMovie?.id === movie.id) {
+        clearSelection()
+      }
     } catch (error) {
       console.error('Failed to delete:', error)
     }
@@ -374,7 +378,7 @@ export function DetailsPanel() {
 
 // Bulk Actions Panel for multi-selection
 function BulkActionsPanel() {
-  const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState } = useLibraryStore()
+  const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState } = useLibraryStore()
   const [showTagDropdown, setShowTagDropdown] = useState(false)
 
   const handleBulkAddTag = async (tagId: number) => {
@@ -419,6 +423,20 @@ function BulkActionsPanel() {
       }
     } catch (error) {
       console.error('Failed to bulk update favorite:', error)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to remove ${selectedMovies.length} movies from your library?`)) return
+    try {
+      const ids = selectedMovies.map(m => m.id)
+      for (const id of ids) {
+        await window.api.deleteMovie(id)
+      }
+      removeMoviesFromState(ids)
+      clearSelection()
+    } catch (error) {
+      console.error('Failed to bulk delete:', error)
     }
   }
 
@@ -591,6 +609,16 @@ function BulkActionsPanel() {
               Unfavorite
             </button>
           </div>
+          
+          <button
+            onClick={handleBulkDelete}
+            className="w-full py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Remove All Selected
+          </button>
         </div>
       </motion.div>
     </aside>

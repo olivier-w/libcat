@@ -196,12 +196,12 @@ export function Sidebar() {
         {/* Tags List */}
         <nav className="space-y-1">
           {tags.map((tag) => (
-            <motion.button
+            <motion.div
               key={tag.id}
               whileHover={{ x: 2 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveFilter(tag.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all group ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all group cursor-pointer ${
                 activeFilter === tag.id
                   ? 'bg-charcoal-800'
                   : 'hover:bg-charcoal-800/50'
@@ -228,7 +228,7 @@ export function Sidebar() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-            </motion.button>
+            </motion.div>
           ))}
           
           {tags.length === 0 && !showCreateTag && (

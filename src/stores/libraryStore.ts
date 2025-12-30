@@ -37,6 +37,7 @@ interface LibraryState {
   applyFilter: () => Promise<void>
   updateMovieInState: (id: number, data: Partial<Movie>) => void
   removeMovieFromState: (id: number) => void
+  removeMoviesFromState: (ids: number[]) => void
   addMoviesToState: (movies: Movie[]) => void
   addTagToState: (tag: Tag) => void
   updateTagInState: (id: number, data: Partial<Tag>) => void
@@ -139,7 +140,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
   
   applyFilter: async () => {
-    const { movies, activeFilter, searchQuery } = get()
+    const { movies, activeFilter, searchQuery, selectedMovies, selectedMovie } = get()
     let filtered = [...movies]
     
     // Apply search filter
@@ -166,7 +167,23 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       )
     }
     
-    set({ filteredMovies: filtered })
+    // Clean up invalid selections (movies that no longer exist or don't match filter)
+    const movieIds = new Set(movies.map(m => m.id))
+    const filteredIds = new Set(filtered.map(m => m.id))
+    
+    const validSelectedMovies = selectedMovies.filter(m => 
+      movieIds.has(m.id) && filteredIds.has(m.id)
+    )
+    const validSelectedMovie = selectedMovie && movieIds.has(selectedMovie.id) && filteredIds.has(selectedMovie.id)
+      ? selectedMovie
+      : null
+    
+    set({ 
+      filteredMovies: filtered,
+      selectedMovies: validSelectedMovies,
+      selectedMovie: validSelectedMovie,
+      lastSelectedIndex: validSelectedMovies.length === 0 ? null : get().lastSelectedIndex,
+    })
   },
   
   updateMovieInState: (id, data) => {
@@ -183,10 +200,37 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
   
   removeMovieFromState: (id) => {
-    set((state) => ({
-      movies: state.movies.filter((movie) => movie.id !== id),
-      selectedMovie: state.selectedMovie?.id === id ? null : state.selectedMovie,
-    }))
+    set((state) => {
+      const newMovies = state.movies.filter((movie) => movie.id !== id)
+      const newSelectedMovies = state.selectedMovies.filter((movie) => movie.id !== id)
+      const newSelectedMovie = state.selectedMovie?.id === id ? null : state.selectedMovie
+      
+      return {
+        movies: newMovies,
+        selectedMovies: newSelectedMovies,
+        selectedMovie: newSelectedMovie,
+        lastSelectedIndex: newSelectedMovies.length === 0 ? null : state.lastSelectedIndex,
+      }
+    })
+    get().applyFilter()
+  },
+  
+  removeMoviesFromState: (ids: number[]) => {
+    set((state) => {
+      const idSet = new Set(ids)
+      const newMovies = state.movies.filter((movie) => !idSet.has(movie.id))
+      const newSelectedMovies = state.selectedMovies.filter((movie) => !idSet.has(movie.id))
+      const newSelectedMovie = state.selectedMovie && !idSet.has(state.selectedMovie.id) 
+        ? state.selectedMovie 
+        : null
+      
+      return {
+        movies: newMovies,
+        selectedMovies: newSelectedMovies,
+        selectedMovie: newSelectedMovie,
+        lastSelectedIndex: newSelectedMovies.length === 0 ? null : state.lastSelectedIndex,
+      }
+    })
     get().applyFilter()
   },
   
