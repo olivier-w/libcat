@@ -153,6 +153,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   // Data operations
   loadMovies: async () => {
     try {
+      const { selectedMovie, selectedMovies } = get()
       const movies = await window.api.getMovies()
       // Load tags for each movie
       const moviesWithTags = await Promise.all(
@@ -161,7 +162,21 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           tags: await window.api.getTagsForMovie(movie.id),
         }))
       )
-      set({ movies: moviesWithTags })
+      
+      // Update selectedMovie and selectedMovies to point to the updated movie objects
+      const updatedSelectedMovie = selectedMovie
+        ? moviesWithTags.find(m => m.id === selectedMovie.id) || null
+        : null
+      
+      const updatedSelectedMovies = selectedMovies
+        .map(movie => moviesWithTags.find(m => m.id === movie.id))
+        .filter((m): m is Movie => m !== undefined)
+      
+      set({ 
+        movies: moviesWithTags,
+        selectedMovie: updatedSelectedMovie,
+        selectedMovies: updatedSelectedMovies,
+      })
       get().applyFilter()
     } catch (error) {
       console.error('Failed to load movies:', error)
