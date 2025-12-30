@@ -226,7 +226,19 @@ export class DatabaseService {
 
   // Tags CRUD
   getAllTags(): Tag[] {
-    return this.db.prepare('SELECT * FROM tags ORDER BY created_at DESC').all() as Tag[]
+    // Check if created_at column exists, if not order by id (newest first)
+    try {
+      // Try to order by created_at first
+      const result = this.db.prepare('SELECT * FROM tags ORDER BY created_at DESC').all() as Tag[]
+      return result
+    } catch (e: any) {
+      // If created_at doesn't exist, order by id DESC (newest first)
+      if (e.message && e.message.includes('no such column: created_at')) {
+        return this.db.prepare('SELECT * FROM tags ORDER BY id DESC').all() as Tag[]
+      }
+      // For any other error, just return tags without ordering
+      return this.db.prepare('SELECT * FROM tags').all() as Tag[]
+    }
   }
 
   getTagById(id: number): Tag | undefined {

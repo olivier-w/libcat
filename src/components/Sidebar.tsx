@@ -10,11 +10,10 @@ const PRESET_COLORS = [
 ]
 
 export function Sidebar() {
-  const { tags, activeFilter, setActiveFilter, movies, addTagToState, updateTagInState, removeTagFromState } = useLibraryStore()
+  const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0])
-  const [editingTag, setEditingTag] = useState<number | null>(null)
   const [tagSearchQuery, setTagSearchQuery] = useState('')
   
   const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
