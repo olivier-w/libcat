@@ -1,9 +1,216 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
+import type { Tag } from '../types'
+
+// Smart dropdown component that renders via portal and positions intelligently
+interface TagDropdownProps {
+  isOpen: boolean
+  onClose: () => void
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+  tags: Tag[]
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  onSelectTag: (tagId: number) => void
+  onCreateTag: () => void
+  inputRef: React.RefObject<HTMLInputElement | null>
+}
+
+// Ref callback for input elements to handle null refs
+function useInputRef(inputRef: React.RefObject<HTMLInputElement | null>) {
+  return useCallback((el: HTMLInputElement | null) => {
+    (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = el
+  }, [inputRef])
+}
+
+function TagDropdownPortal({
+  isOpen,
+  onClose,
+  anchorRef,
+  tags,
+  searchQuery,
+  onSearchChange,
+  onSelectTag,
+  onCreateTag,
+  inputRef,
+}: TagDropdownProps) {
+  const [position, setPosition] = useState<{ top: number; left: number; width: number; openUpward: boolean }>({
+    top: 0,
+    left: 0,
+    width: 200,
+    openUpward: false,
+  })
+  const inputRefCallback = useInputRef(inputRef)
+
+  // Calculate position based on anchor element
+  const updatePosition = useCallback(() => {
+    if (!anchorRef.current) return
+
+    const rect = anchorRef.current.getBoundingClientRect()
+    const dropdownHeight = 280 // Approximate max height of dropdown
+    const dropdownWidth = 240
+    const padding = 12 // Padding from viewport edges
+    
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    const openUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow
+
+    // Calculate left position - align to right edge of button if it would overflow
+    let left = rect.right - dropdownWidth // Align to right edge of button
+    
+    // Ensure dropdown stays within viewport bounds
+    if (left < padding) {
+      left = padding
+    }
+    if (left + dropdownWidth > window.innerWidth - padding) {
+      left = window.innerWidth - dropdownWidth - padding
+    }
+
+    setPosition({
+      top: openUpward ? rect.top : rect.bottom + 4,
+      left,
+      width: dropdownWidth,
+      openUpward,
+    })
+  }, [anchorRef])
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition()
+      // Update position on scroll or resize
+      const handleUpdate = () => updatePosition()
+      window.addEventListener('scroll', handleUpdate, true)
+      window.addEventListener('resize', handleUpdate)
+      return () => {
+        window.removeEventListener('scroll', handleUpdate, true)
+        window.removeEventListener('resize', handleUpdate)
+      }
+    }
+  }, [isOpen, updatePosition])
+
+  // Focus input when dropdown opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // Small delay to ensure portal is mounted
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+  }, [isOpen, inputRef])
+
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (anchorRef.current?.contains(target)) return
+      // Check if click is inside the dropdown
+      const dropdown = document.getElementById('tag-dropdown-portal')
+      if (dropdown?.contains(target)) return
+      onClose()
+    }
+
+    // Use capture phase for reliable detection
+    document.addEventListener('mousedown', handleClickOutside, true)
+    return () => document.removeEventListener('mousedown', handleClickOutside, true)
+  }, [isOpen, onClose, anchorRef])
+
+  if (!isOpen) return null
+
+  const dropdownContent = (
+    <motion.div
+      id="tag-dropdown-portal"
+      initial={{ opacity: 0, y: position.openUpward ? 8 : -8, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: position.openUpward ? 8 : -8, scale: 0.95 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="fixed rounded-xl bg-charcoal-800/95 backdrop-blur-xl border border-charcoal-600/50 shadow-2xl shadow-black/50 z-[9999] overflow-hidden"
+      style={{
+        top: position.openUpward ? 'auto' : position.top,
+        bottom: position.openUpward ? window.innerHeight - position.top + 4 : 'auto',
+        left: position.left,
+        width: position.width,
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation()
+          onClose()
+        }
+      }}
+    >
+      {/* Search Input */}
+      <div className="p-2.5 border-b border-charcoal-700/50">
+        <div className="relative">
+          <svg 
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-charcoal-500" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            ref={inputRefCallback}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search or create tag..."
+            className="w-full pl-8 pr-3 py-2 rounded-lg bg-charcoal-900/80 border border-charcoal-600/50 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 focus:outline-none transition-all"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
+
+      {/* Tag List */}
+      <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-charcoal-600 scrollbar-track-transparent">
+        {tags.length > 0 ? (
+          tags.map((tag, index) => (
+            <motion.button
+              key={tag.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.02, duration: 0.15 }}
+              onClick={() => onSelectTag(tag.id)}
+              className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700/80 active:bg-charcoal-600/80 transition-colors flex items-center gap-2.5 group"
+            >
+              <div
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-transparent group-hover:ring-white/20 transition-all"
+                style={{ backgroundColor: tag.color }}
+              />
+              <span className="truncate">{tag.name}</span>
+            </motion.button>
+          ))
+        ) : searchQuery.trim() ? (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={onCreateTag}
+            className="w-full px-3 py-2.5 text-left text-sm text-amber-400 hover:bg-amber-400/10 transition-colors flex items-center gap-2"
+          >
+            <div className="w-5 h-5 rounded-full bg-amber-400/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <span>Create "<span className="font-medium">{searchQuery.trim()}</span>"</span>
+          </motion.button>
+        ) : (
+          <p className="px-3 py-3 text-sm text-charcoal-500 text-center">No tags available</p>
+        )}
+      </div>
+    </motion.div>
+  )
+
+  return createPortal(
+    <AnimatePresence>{dropdownContent}</AnimatePresence>,
+    document.body
+  )
+}
 
 export function DetailsPanel() {
   const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState } = useLibraryStore()
@@ -14,6 +221,7 @@ export function DetailsPanel() {
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [tagSearchQuery, setTagSearchQuery] = useState('')
   const tagSearchInputRef = useRef<HTMLInputElement>(null)
+  const addTagButtonRef = useRef<HTMLButtonElement>(null)
 
   const isMultiSelect = selectedMovies.length > 1
 
@@ -25,11 +233,9 @@ export function DetailsPanel() {
     }
   }, [selectedMovie, isMultiSelect])
 
-  // Focus search input when dropdown opens (must be before early returns)
+  // Clear search query when dropdown closes
   useEffect(() => {
-    if (showTagDropdown && tagSearchInputRef.current) {
-      tagSearchInputRef.current.focus()
-    } else {
+    if (!showTagDropdown) {
       setTagSearchQuery('')
     }
   }, [showTagDropdown])
@@ -267,85 +473,51 @@ export function DetailsPanel() {
 
             {/* Tags */}
             <div>
-              <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
-                Tags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {movie.tags?.map((tag) => (
-                  <TagPill
-                    key={tag.id}
-                    tag={tag}
-                    onRemove={() => handleRemoveTag(tag.id)}
-                  />
-                ))}
-                
-                <div className="relative">
-                  <button
-                    onClick={() => setShowTagDropdown(!showTagDropdown)}
-                    className="h-6 px-2 rounded-full bg-charcoal-800 text-charcoal-400 text-xs hover:bg-charcoal-700 hover:text-cream-200 transition-colors flex items-center gap-1"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add
-                  </button>
-                  
-                  {showTagDropdown && (
-                    <div 
-                      className="absolute top-full left-0 mt-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10 min-w-[200px] max-w-[300px]"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          setShowTagDropdown(false)
-                        }
-                      }}
-                    >
-                      {/* Search Input */}
-                      <div className="p-2 border-b border-charcoal-700">
-                        <input
-                          ref={tagSearchInputRef}
-                          type="text"
-                          value={tagSearchQuery}
-                          onChange={(e) => setTagSearchQuery(e.target.value)}
-                          placeholder="Search tags..."
-                          className="w-full px-2 py-1.5 rounded bg-charcoal-900 border border-charcoal-600 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                      
-                      {/* Tag List */}
-                      <div className="max-h-64 overflow-y-auto py-1">
-                        {filteredAvailableTags.length > 0 ? (
-                          filteredAvailableTags.map((tag) => (
-                            <button
-                              key={tag.id}
-                              onClick={() => handleAddTag(tag.id)}
-                              className="w-full px-3 py-1.5 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                            >
-                              <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: tag.color }}
-                              />
-                              <span className="truncate">{tag.name}</span>
-                            </button>
-                          ))
-                        ) : tagSearchQuery.trim() ? (
-                          <button
-                            onClick={handleCreateAndAddTag}
-                            className="w-full px-3 py-1.5 text-left text-sm text-amber-400 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>Create "{tagSearchQuery.trim()}"</span>
-                          </button>
-                        ) : (
-                          <p className="px-3 py-2 text-sm text-charcoal-500">No tags found</p>
-                        )}
-                      </div>
-                    </div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-charcoal-400 uppercase tracking-wider">
+                  Tags
+                </label>
+                <button
+                  ref={addTagButtonRef}
+                  onClick={() => setShowTagDropdown(!showTagDropdown)}
+                  className="h-6 px-2.5 rounded-full bg-charcoal-800/80 text-charcoal-400 text-xs hover:bg-amber-400/20 hover:text-amber-400 transition-all flex items-center gap-1.5 group"
+                >
+                  <svg className="w-3 h-3 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add tag
+                </button>
+              </div>
+              
+              {/* Tags container with max height and scroll */}
+              <div className="max-h-28 overflow-y-auto scrollbar-thin scrollbar-thumb-charcoal-600 scrollbar-track-transparent rounded-lg">
+                <div className="flex flex-wrap gap-1.5 p-0.5">
+                  {movie.tags && movie.tags.length > 0 ? (
+                    movie.tags.map((tag) => (
+                      <TagPill
+                        key={tag.id}
+                        tag={tag}
+                        onRemove={() => handleRemoveTag(tag.id)}
+                      />
+                    ))
+                  ) : (
+                    <span className="text-xs text-charcoal-500 italic py-1">No tags yet</span>
                   )}
                 </div>
               </div>
+              
+              {/* Tag Dropdown Portal */}
+              <TagDropdownPortal
+                isOpen={showTagDropdown}
+                onClose={() => setShowTagDropdown(false)}
+                anchorRef={addTagButtonRef}
+                tags={filteredAvailableTags}
+                searchQuery={tagSearchQuery}
+                onSearchChange={setTagSearchQuery}
+                onSelectTag={handleAddTag}
+                onCreateTag={handleCreateAndAddTag}
+                inputRef={tagSearchInputRef}
+              />
             </div>
 
             {/* Notes */}
@@ -498,14 +670,13 @@ function BulkActionsPanel() {
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [bulkTagSearchQuery, setBulkTagSearchQuery] = useState('')
   const bulkTagSearchInputRef = useRef<HTMLInputElement>(null)
+  const bulkAddTagButtonRef = useRef<HTMLButtonElement>(null)
   
   const filteredTags = fuzzySearchTags(tags, bulkTagSearchQuery)
 
-  // Focus search input when dropdown opens
+  // Clear search query when dropdown closes
   useEffect(() => {
-    if (showTagDropdown && bulkTagSearchInputRef.current) {
-      bulkTagSearchInputRef.current.focus()
-    } else {
+    if (!showTagDropdown) {
       setBulkTagSearchQuery('')
     }
   }, [showTagDropdown])
@@ -648,80 +819,40 @@ function BulkActionsPanel() {
         </div>
 
         {/* Bulk Tag Actions */}
-        <div className="p-4 space-y-4 flex-1">
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto">
           {/* Add Tags */}
           <div>
             <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
               Add Tag to All
             </label>
-            <div className="relative">
-              <button
-                onClick={() => setShowTagDropdown(!showTagDropdown)}
-                className="w-full px-3 py-2 rounded-lg bg-charcoal-800 border border-charcoal-700 text-cream-200 text-sm hover:bg-charcoal-700 transition-colors flex items-center justify-between"
-              >
-                <span>Select a tag...</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <button
+              ref={bulkAddTagButtonRef}
+              onClick={() => setShowTagDropdown(!showTagDropdown)}
+              className="w-full px-3 py-2.5 rounded-lg bg-charcoal-800/80 border border-charcoal-700/50 text-cream-200 text-sm hover:bg-charcoal-700 hover:border-charcoal-600 transition-all flex items-center justify-between group"
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-charcoal-400 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-              </button>
-              
-              {showTagDropdown && (
-                <div 
-                  className="absolute top-full left-0 right-0 mt-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowTagDropdown(false)
-                    }
-                  }}
-                >
-                  {/* Search Input */}
-                  <div className="p-2 border-b border-charcoal-700">
-                    <input
-                      ref={bulkTagSearchInputRef}
-                      type="text"
-                      value={bulkTagSearchQuery}
-                      onChange={(e) => setBulkTagSearchQuery(e.target.value)}
-                      placeholder="Search tags..."
-                      className="w-full px-2 py-1.5 rounded bg-charcoal-900 border border-charcoal-600 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  
-                  {/* Tag List */}
-                  <div className="max-h-64 overflow-y-auto py-1">
-                    {filteredTags.length > 0 ? (
-                      filteredTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => handleBulkAddTag(tag.id)}
-                          className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                        >
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          <span className="truncate">{tag.name}</span>
-                        </button>
-                      ))
-                    ) : bulkTagSearchQuery.trim() ? (
-                      <button
-                        onClick={handleBulkCreateAndAddTag}
-                        className="w-full px-3 py-2 text-left text-sm text-amber-400 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span>Create "{bulkTagSearchQuery.trim()}"</span>
-                      </button>
-                    ) : (
-                      <p className="px-3 py-2 text-sm text-charcoal-500">
-                        {tags.length === 0 ? 'No tags available' : 'No tags found'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                Select a tag...
+              </span>
+              <svg className={`w-4 h-4 transition-transform duration-200 ${showTagDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* Tag Dropdown Portal */}
+            <TagDropdownPortal
+              isOpen={showTagDropdown}
+              onClose={() => setShowTagDropdown(false)}
+              anchorRef={bulkAddTagButtonRef}
+              tags={filteredTags}
+              searchQuery={bulkTagSearchQuery}
+              onSearchChange={setBulkTagSearchQuery}
+              onSelectTag={handleBulkAddTag}
+              onCreateTag={handleBulkCreateAndAddTag}
+              inputRef={bulkTagSearchInputRef}
+            />
           </div>
 
           {/* Common Tags (can remove) */}
