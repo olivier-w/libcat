@@ -126,18 +126,58 @@ export class DatabaseService {
   }
 
   updateMovie(id: number, data: Partial<Omit<Movie, 'id' | 'created_at'>>): Movie {
-    const fields = Object.keys(data)
-      .filter(key => data[key as keyof typeof data] !== undefined)
-      .map(key => `${key} = @${key}`)
-      .join(', ')
+    // Whitelist of valid database columns (excluding id, created_at, updated_at)
+    const validColumns = ['file_path', 'title', 'year', 'rating', 'notes', 'watched', 'favorite', 'thumbnail_path', 'file_size', 'duration']
+    
+    // Filter and process only valid columns with defined values
+    const processedData: any = { id }
+    const fields: string[] = []
+    
+    for (const [key, value] of Object.entries(data)) {
+      // Only process valid database columns
+      if (!validColumns.includes(key)) {
+        continue
+      }
+      
+      // Skip undefined values
+      if (value === undefined) {
+        continue
+      }
+      
+      // Convert boolean values to integers for SQLite
+      if (typeof value === 'boolean') {
+        processedData[key] = value ? 1 : 0
+        fields.push(`${key} = @${key}`)
+      } 
+      // Handle null values
+      else if (value === null) {
+        processedData[key] = null
+        fields.push(`${key} = @${key}`)
+      }
+      // Handle string values
+      else if (typeof value === 'string') {
+        processedData[key] = value
+        fields.push(`${key} = @${key}`)
+      }
+      // Handle number values (but skip NaN and Infinity)
+      else if (typeof value === 'number') {
+        if (isNaN(value) || !isFinite(value)) {
+          // Skip invalid numbers
+          continue
+        }
+        processedData[key] = value
+        fields.push(`${key} = @${key}`)
+      }
+      // Skip any other types (objects, arrays, etc.)
+    }
 
-    if (fields) {
+    if (fields.length > 0) {
       const stmt = this.db.prepare(`
         UPDATE movies 
-        SET ${fields}, updated_at = CURRENT_TIMESTAMP
+        SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE id = @id
       `)
-      stmt.run({ ...data, id })
+      stmt.run(processedData)
     }
 
     return this.getMovieById(id)!
