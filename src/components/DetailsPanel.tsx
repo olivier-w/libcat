@@ -169,12 +169,12 @@ function TagDropdownPortal({
       {/* Tag List */}
       <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-charcoal-600 scrollbar-track-transparent">
         {tags.length > 0 ? (
-          tags.map((tag, index) => (
+          tags.map((tag) => (
             <motion.button
               key={tag.id}
-              initial={{ opacity: 0, x: -8 }}
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.02, duration: 0.15 }}
+              transition={{ duration: 0.1 }}
               onClick={() => onSelectTag(tag.id)}
               className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700/80 active:bg-charcoal-600/80 transition-colors flex items-center gap-2.5 group"
             >
