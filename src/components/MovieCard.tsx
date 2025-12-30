@@ -47,7 +47,7 @@ function MovieCardComponent({ movie, index }: MovieCardProps) {
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={`movie-card relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer group ${
-        isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-charcoal-900' : ''
+        isSelected ? 'movie-card-selected' : ''
       }`}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}

@@ -111,6 +111,17 @@ input:focus, button:focus, select:focus {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
+/* Selected movie card - ensure border is always visible, even on hover */
+.movie-card-selected {
+  border: 3px solid rgba(251, 191, 36, 1);
+  box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+}
+
+.movie-card-selected:hover {
+  border: 3px solid rgba(251, 191, 36, 1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
 /* Staggered animation delay utility */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
@@ -127,5 +138,23 @@ input:focus, button:focus, select:focus {
 .drop-zone.active {
   border-color: #f4a261;
   background: rgba(244, 162, 97, 0.1);
+}
+
+/* Disable text selection for native app feel */
+.movie-card,
+.movie-card * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Disable text selection on list view items */
+.movie-list-item,
+.movie-list-item * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
