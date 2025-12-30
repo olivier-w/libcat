@@ -190,7 +190,7 @@ export function ListView() {
               <motion.div
                 key={movie.id}
                 variants={item}
-                onClick={(e) => toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)}
+                onClick={(e) => toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey, sortedMovies)}
                 onDoubleClick={() => handleDoubleClick(movie)}
                 className={`movie-list-item grid grid-cols-[1fr,120px,100px,100px,80px] gap-4 px-4 py-3 border-b border-charcoal-800/50 cursor-pointer transition-colors hover:bg-charcoal-800/30 ${
                   isSelected ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''

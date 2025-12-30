@@ -10,12 +10,7 @@ export function Gallery() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { observe, isVisible } = useVisibleItems(scrollContainerRef)
 
-  // Sort movies by date added (newest first)
-  const sortedMovies = [...filteredMovies].sort((a, b) => {
-    const dateA = new Date(a.created_at).getTime()
-    const dateB = new Date(b.created_at).getTime()
-    return dateB - dateA // Descending order (newest first)
-  })
+  // filteredMovies is already sorted by date added (newest first) in the store
 
   const getFilterTitle = () => {
     if (activeFilter === 'all') return 'All Movies'
@@ -45,7 +40,7 @@ export function Gallery() {
             {getFilterTitle()}
           </h1>
           <p className="text-sm text-charcoal-400 mt-0.5">
-            {sortedMovies.length} {sortedMovies.length === 1 ? 'movie' : 'movies'}
+            {filteredMovies.length} {filteredMovies.length === 1 ? 'movie' : 'movies'}
           </p>
         </div>
 
@@ -89,9 +84,9 @@ export function Gallery() {
         <ListView />
       ) : (
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
-          {sortedMovies.length > 0 ? (
+          {filteredMovies.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
-              {sortedMovies.map((movie, index) => (
+              {filteredMovies.map((movie, index) => (
                 <MovieCard
                   key={movie.id}
                   movie={movie}

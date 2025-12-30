@@ -37,7 +37,7 @@ interface LibraryState {
   setFilteredMovies: (movies: Movie[]) => void
   setSelectedMovie: (movie: Movie | null) => void
   setSelectedMovies: (movies: Movie[]) => void
-  toggleMovieSelection: (movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean) => void
+  toggleMovieSelection: (movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean, displayedMovies?: Movie[]) => void
   clearSelection: () => void
   setActiveFilter: (filter: FilterType) => void
   setSearchQuery: (query: string) => void
@@ -103,14 +103,16 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setSelectedMovie: (movie) => set({ selectedMovie: movie, selectedMovies: movie ? [movie] : [], lastSelectedIndex: null }),
   setSelectedMovies: (movies) => set({ selectedMovies: movies, selectedMovie: movies.length === 1 ? movies[0] : null }),
   
-  toggleMovieSelection: (movie, index, shiftKey, ctrlKey) => {
+  toggleMovieSelection: (movie, index, shiftKey, ctrlKey, displayedMovies) => {
     const { selectedMovies, lastSelectedIndex, filteredMovies } = get()
+    // Use the displayed movies array if provided (for custom sorting like in ListView)
+    const moviesArray = displayedMovies ?? filteredMovies
     
     if (shiftKey && lastSelectedIndex !== null) {
       // Shift+click: select range
       const start = Math.min(lastSelectedIndex, index)
       const end = Math.max(lastSelectedIndex, index)
-      const rangeMovies = filteredMovies.slice(start, end + 1)
+      const rangeMovies = moviesArray.slice(start, end + 1)
       set({ 
         selectedMovies: rangeMovies, 
         selectedMovie: rangeMovies.length === 1 ? rangeMovies[0] : null 
@@ -244,6 +246,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         movie.tags?.some((tag) => tag.id === activeFilter)
       )
     }
+    
+    // Sort by date added (newest first) - must match Gallery display order
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA
+    })
     
     // Clean up invalid selections (movies that no longer exist or don't match filter)
     const movieIds = new Set(movies.map(m => m.id))
