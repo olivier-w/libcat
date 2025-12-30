@@ -31,6 +31,7 @@ export class DatabaseService {
     const dbPath = path.join(userDataPath, 'libcat.db')
     this.db = new Database(dbPath)
     this.db.pragma('journal_mode = WAL')
+    this.db.pragma('foreign_keys = ON')
     this.initialize()
   }
 
@@ -257,6 +258,9 @@ export class DatabaseService {
   }
 
   deleteTag(id: number): void {
+    // First, remove the tag from all movies (explicit deletion for safety)
+    this.db.prepare('DELETE FROM movie_tags WHERE tag_id = ?').run(id)
+    // Then delete the tag itself
     this.db.prepare('DELETE FROM tags WHERE id = ?').run(id)
   }
 

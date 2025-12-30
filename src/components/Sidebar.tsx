@@ -10,7 +10,7 @@ const PRESET_COLORS = [
 ]
 
 export function Sidebar() {
-  const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState } = useLibraryStore()
+  const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, loadMovies } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0])
@@ -77,9 +77,21 @@ export function Sidebar() {
   }
 
   const handleDeleteTag = async (tagId: number) => {
+    const tag = tags.find((t) => t.id === tagId)
+    if (!tag) return
+    
+    const movieCount = getTagCount(tagId)
+    const warningMessage = movieCount > 0
+      ? `Are you sure you want to delete the tag "${tag.name}"? This will remove the tag from ${movieCount} ${movieCount === 1 ? 'movie' : 'movies'}.`
+      : `Are you sure you want to delete the tag "${tag.name}"?`
+    
+    if (!confirm(warningMessage)) return
+    
     try {
       await window.api.deleteTag(tagId)
       removeTagFromState(tagId)
+      // Refresh movies to update their tag associations
+      await loadMovies()
     } catch (error) {
       console.error('Failed to delete tag:', error)
     }
