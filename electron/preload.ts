@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+// Profile type for the renderer
+export interface Profile {
+  id: string
+  name: string
+  passwordHash: string | null // 'protected' if has password, null if not
+  createdAt: string
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('api', {
@@ -7,6 +15,15 @@ contextBridge.exposeInMainWorld('api', {
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowMaximize: () => ipcRenderer.send('window:maximize'),
   windowClose: () => ipcRenderer.send('window:close'),
+
+  // Profiles
+  getProfiles: () => ipcRenderer.invoke('profiles:getAll'),
+  createProfile: (name: string, password?: string) => ipcRenderer.invoke('profiles:create', name, password),
+  deleteProfile: (id: string) => ipcRenderer.invoke('profiles:delete', id),
+  renameProfile: (id: string, newName: string) => ipcRenderer.invoke('profiles:rename', id, newName),
+  unlockProfile: (id: string, password?: string) => ipcRenderer.invoke('profiles:unlock', id, password),
+  lockProfile: () => ipcRenderer.invoke('profiles:lock'),
+  hasPassword: (id: string) => ipcRenderer.invoke('profiles:hasPassword', id),
 
   // Movies
   getMovies: () => ipcRenderer.invoke('movies:getAll'),
@@ -52,30 +69,54 @@ contextBridge.exposeInMainWorld('api', {
 
 // Type declarations for the exposed API
 export type Api = {
+  // Window controls
   windowMinimize: () => void
   windowMaximize: () => void
   windowClose: () => void
+  
+  // Profiles
+  getProfiles: () => Promise<Profile[]>
+  createProfile: (name: string, password?: string) => Promise<Profile>
+  deleteProfile: (id: string) => Promise<void>
+  renameProfile: (id: string, newName: string) => Promise<Profile>
+  unlockProfile: (id: string, password?: string) => Promise<{ success: boolean; profile: Profile }>
+  lockProfile: () => Promise<{ success: boolean }>
+  hasPassword: (id: string) => Promise<boolean>
+  
+  // Movies
   getMovies: () => Promise<any[]>
   getMovieById: (id: number) => Promise<any>
   updateMovie: (id: number, data: any) => Promise<any>
   deleteMovie: (id: number) => Promise<void>
   getMoviesByFilter: (filter: string) => Promise<any[]>
   searchMovies: (query: string) => Promise<any[]>
+  
+  // Tags
   getTags: () => Promise<any[]>
   createTag: (name: string, color: string) => Promise<any>
   updateTag: (id: number, name: string, color: string) => Promise<any>
   deleteTag: (id: number) => Promise<void>
+  
+  // Movie-Tag associations
   addTagToMovie: (movieId: number, tagId: number) => Promise<void>
   removeTagFromMovie: (movieId: number, tagId: number) => Promise<void>
   getTagsForMovie: (movieId: number) => Promise<any[]>
   getMoviesByTag: (tagId: number) => Promise<any[]>
+  
+  // Folder operations
   selectFolder: () => Promise<string | null>
   scanFolder: (folderPath: string) => Promise<any[]>
   onScanProgress: (callback: (data: any) => void) => () => void
+  
+  // File operations
   openInExplorer: (filePath: string) => Promise<void>
   playVideo: (filePath: string) => Promise<void>
+  
+  // Thumbnail operations
   regenerateThumbnail: (movieId: number, filePath: string) => Promise<string | null>
   setCustomThumbnail: (movieId: number) => Promise<string | null>
+  
+  // Drag and drop
   addFromPaths: (paths: string[]) => Promise<any[]>
 }
 
@@ -84,4 +125,3 @@ declare global {
     api: Api
   }
 }
-

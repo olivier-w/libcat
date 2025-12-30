@@ -8,4 +8,5 @@ export { TagPill } from './TagPill'
 export { StarRating } from './StarRating'
 export { SearchBar } from './SearchBar'
 export { ScanModal } from './ScanModal'
+export { ProfileSelector } from './ProfileSelector'
 

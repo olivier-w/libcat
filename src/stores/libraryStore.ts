@@ -1,7 +1,17 @@
 import { create } from 'zustand'
 import type { Movie, Tag, FilterType, ScanProgress, ViewMode } from '../types'
 
+export interface Profile {
+  id: string
+  name: string
+  passwordHash: string | null
+  createdAt: string
+}
+
 interface LibraryState {
+  // Profile state
+  activeProfile: Profile | null
+  
   // Data
   movies: Movie[]
   tags: Tag[]
@@ -16,6 +26,10 @@ interface LibraryState {
   isScanning: boolean
   scanProgress: ScanProgress | null
   viewMode: ViewMode
+  
+  // Profile actions
+  setActiveProfile: (profile: Profile | null) => void
+  lockProfile: () => Promise<void>
   
   // Actions
   setMovies: (movies: Movie[]) => void
@@ -46,6 +60,7 @@ interface LibraryState {
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   // Initial state
+  activeProfile: null,
   movies: [],
   tags: [],
   filteredMovies: [],
@@ -57,6 +72,29 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   isScanning: false,
   scanProgress: null,
   viewMode: 'grid',
+  
+  // Profile actions
+  setActiveProfile: (profile) => set({ activeProfile: profile }),
+  
+  lockProfile: async () => {
+    try {
+      await window.api.lockProfile()
+      // Clear all data when locking
+      set({
+        activeProfile: null,
+        movies: [],
+        tags: [],
+        filteredMovies: [],
+        selectedMovie: null,
+        selectedMovies: [],
+        lastSelectedIndex: null,
+        activeFilter: 'all',
+        searchQuery: '',
+      })
+    } catch (error) {
+      console.error('Failed to lock profile:', error)
+    }
+  },
   
   // Setters
   setMovies: (movies) => set({ movies }),

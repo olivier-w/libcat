@@ -1,16 +1,19 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, protocol } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { DatabaseService } from './services/database'
 import { FileScanner } from './services/scanner'
 import { ThumbnailService } from './services/thumbnails'
+import { ProfileService } from './services/profiles'
 
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null
-let db: DatabaseService
+let db: DatabaseService | null = null
 let scanner: FileScanner
-let thumbnailService: ThumbnailService
+let thumbnailService: ThumbnailService | null = null
+let profileService: ProfileService
+let userDataPath: string
 
 // Register custom protocol for local files
 function registerLocalFileProtocol() {
@@ -69,15 +72,34 @@ function createWindow() {
   })
 }
 
+// Initialize services for a specific profile
+function initializeProfileServices(profileId: string) {
+  const profilePath = profileService.getProfilePath(profileId)
+  db = new DatabaseService(profilePath)
+  thumbnailService = new ThumbnailService(profilePath)
+}
+
+// Clear profile services (lock profile)
+function clearProfileServices() {
+  db = null
+  thumbnailService = null
+}
+
 app.whenReady().then(() => {
   // Register custom protocol for loading local files
   registerLocalFileProtocol()
 
-  // Initialize services
-  const userDataPath = app.getPath('userData')
-  db = new DatabaseService(userDataPath)
+  // Initialize base services
+  userDataPath = app.getPath('userData')
+  profileService = new ProfileService(userDataPath)
   scanner = new FileScanner()
-  thumbnailService = new ThumbnailService(userDataPath)
+
+  // Check for data migration (existing libcat.db without profiles)
+  const profiles = profileService.getProfiles()
+  if (profiles.length === 0) {
+    // Try to migrate existing data
+    profileService.migrateExistingData()
+  }
 
   // Register IPC handlers
   registerIpcHandlers()
@@ -109,62 +131,120 @@ function registerIpcHandlers() {
   })
   ipcMain.on('window:close', () => mainWindow?.close())
 
-  // Movies CRUD
+  // Profile management
+  ipcMain.handle('profiles:getAll', async () => {
+    return profileService.getProfiles()
+  })
+
+  ipcMain.handle('profiles:create', async (_, name: string, password?: string) => {
+    return profileService.createProfile(name, password)
+  })
+
+  ipcMain.handle('profiles:delete', async (_, id: string) => {
+    return profileService.deleteProfile(id)
+  })
+
+  ipcMain.handle('profiles:rename', async (_, id: string, newName: string) => {
+    return profileService.renameProfile(id, newName)
+  })
+
+  ipcMain.handle('profiles:unlock', async (_, id: string, password?: string) => {
+    const profile = profileService.getProfile(id)
+    if (!profile) {
+      throw new Error('Profile not found')
+    }
+
+    // Verify password if required
+    if (profile.passwordHash) {
+      if (!password || !profileService.verifyPassword(id, password)) {
+        throw new Error('Invalid password')
+      }
+    }
+
+    // Initialize services for this profile
+    initializeProfileServices(id)
+    return { success: true, profile: profileService.getProfiles().find(p => p.id === id) }
+  })
+
+  ipcMain.handle('profiles:lock', async () => {
+    clearProfileServices()
+    return { success: true }
+  })
+
+  ipcMain.handle('profiles:hasPassword', async (_, id: string) => {
+    return profileService.hasPassword(id)
+  })
+
+  // Movies CRUD - now requires profile to be unlocked
   ipcMain.handle('movies:getAll', async () => {
+    if (!db) throw new Error('No profile selected')
     return db.getAllMovies()
   })
 
   ipcMain.handle('movies:getById', async (_, id: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.getMovieById(id)
   })
 
   ipcMain.handle('movies:update', async (_, id: number, data: any) => {
+    if (!db) throw new Error('No profile selected')
     return db.updateMovie(id, data)
   })
 
   ipcMain.handle('movies:delete', async (_, id: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.deleteMovie(id)
   })
 
   ipcMain.handle('movies:getByFilter', async (_, filter: string) => {
+    if (!db) throw new Error('No profile selected')
     return db.getMoviesByFilter(filter)
   })
 
   ipcMain.handle('movies:search', async (_, query: string) => {
+    if (!db) throw new Error('No profile selected')
     return db.searchMovies(query)
   })
 
   // Tags CRUD
   ipcMain.handle('tags:getAll', async () => {
+    if (!db) throw new Error('No profile selected')
     return db.getAllTags()
   })
 
   ipcMain.handle('tags:create', async (_, name: string, color: string) => {
+    if (!db) throw new Error('No profile selected')
     return db.createTag(name, color)
   })
 
   ipcMain.handle('tags:update', async (_, id: number, name: string, color: string) => {
+    if (!db) throw new Error('No profile selected')
     return db.updateTag(id, name, color)
   })
 
   ipcMain.handle('tags:delete', async (_, id: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.deleteTag(id)
   })
 
   // Movie-Tag associations
   ipcMain.handle('movies:addTag', async (_, movieId: number, tagId: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.addTagToMovie(movieId, tagId)
   })
 
   ipcMain.handle('movies:removeTag', async (_, movieId: number, tagId: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.removeTagFromMovie(movieId, tagId)
   })
 
   ipcMain.handle('movies:getTagsForMovie', async (_, movieId: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.getTagsForMovie(movieId)
   })
 
   ipcMain.handle('movies:getByTag', async (_, tagId: number) => {
+    if (!db) throw new Error('No profile selected')
     return db.getMoviesByTag(tagId)
   })
 
@@ -177,7 +257,9 @@ function registerIpcHandlers() {
     return result.filePaths[0] || null
   })
 
-  ipcMain.handle('folder:scan', async (event, folderPath: string) => {
+  ipcMain.handle('folder:scan', async (_, folderPath: string) => {
+    if (!db || !thumbnailService) throw new Error('No profile selected')
+    
     const videoFiles = await scanner.scanFolder(folderPath)
     const results: any[] = []
 
@@ -235,6 +317,8 @@ function registerIpcHandlers() {
 
   // Thumbnail operations
   ipcMain.handle('thumbnail:regenerate', async (_, movieId: number, filePath: string) => {
+    if (!db || !thumbnailService) throw new Error('No profile selected')
+    
     try {
       const metadata = await thumbnailService.generateThumbnail(filePath, true)
       db.updateMovie(movieId, { 
@@ -249,6 +333,8 @@ function registerIpcHandlers() {
   })
 
   ipcMain.handle('thumbnail:setCustom', async (_, movieId: number) => {
+    if (!db || !thumbnailService) throw new Error('No profile selected')
+    
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ['openFile'],
       filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
@@ -265,6 +351,8 @@ function registerIpcHandlers() {
 
   // Drag and drop files
   ipcMain.handle('files:addFromPaths', async (_, paths: string[]) => {
+    if (!db || !thumbnailService) throw new Error('No profile selected')
+    
     const results: any[] = []
 
     for (const filePath of paths) {
@@ -301,4 +389,3 @@ function registerIpcHandlers() {
     return results
   })
 }
-

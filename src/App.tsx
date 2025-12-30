@@ -1,22 +1,35 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useLibraryStore } from './stores/libraryStore'
+import { useLibraryStore, Profile } from './stores/libraryStore'
 import { TitleBar } from './components/TitleBar'
 import { Sidebar } from './components/Sidebar'
 import { Gallery } from './components/Gallery'
 import { DetailsPanel } from './components/DetailsPanel'
 import { SearchBar } from './components/SearchBar'
 import { ScanModal } from './components/ScanModal'
+import { ProfileSelector } from './components/ProfileSelector'
 
 function App() {
-  const { loadMovies, loadTags, isScanning, setScanProgress, setIsScanning, addMoviesToState } = useLibraryStore()
+  const { 
+    activeProfile, 
+    setActiveProfile, 
+    loadMovies, 
+    loadTags, 
+    isScanning, 
+    setScanProgress, 
+    setIsScanning 
+  } = useLibraryStore()
   const [showScanModal, setShowScanModal] = useState(false)
 
   useEffect(() => {
-    // Load initial data
-    loadMovies()
-    loadTags()
+    if (activeProfile) {
+      // Load initial data when profile is active
+      loadMovies()
+      loadTags()
+    }
+  }, [activeProfile, loadMovies, loadTags])
 
+  useEffect(() => {
     // Listen for scan progress
     const unsubscribe = window.api.onScanProgress((data) => {
       setScanProgress(data)
@@ -25,7 +38,11 @@ function App() {
     return () => {
       unsubscribe()
     }
-  }, [loadMovies, loadTags, setScanProgress])
+  }, [setScanProgress])
+
+  const handleProfileSelected = (profile: Profile) => {
+    setActiveProfile(profile)
+  }
 
   const handleAddFolder = async () => {
     const folderPath = await window.api.selectFolder()
@@ -78,6 +95,11 @@ function App() {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+  }
+
+  // Show profile selector if no profile is active
+  if (!activeProfile) {
+    return <ProfileSelector onProfileSelected={handleProfileSelected} />
   }
 
   return (
@@ -137,4 +159,3 @@ function App() {
 }
 
 export default App
-

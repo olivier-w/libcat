@@ -1,6 +1,13 @@
 import { motion } from 'framer-motion'
+import { useLibraryStore } from '../stores/libraryStore'
 
 export function TitleBar() {
+  const { activeProfile, lockProfile } = useLibraryStore()
+
+  const handleLockProfile = async () => {
+    await lockProfile()
+  }
+
   return (
     <div className="h-10 glass flex items-center justify-between px-4 titlebar-drag border-b border-charcoal-700/50">
       {/* App Title */}
@@ -13,6 +20,25 @@ export function TitleBar() {
         <h1 className="font-heading font-semibold text-cream-100 text-sm tracking-wide">
           LibCat
         </h1>
+        
+        {/* Profile indicator */}
+        {activeProfile && (
+          <div className="flex items-center gap-2 ml-2 pl-3 border-l border-charcoal-700">
+            <span className="text-xs text-charcoal-400">{activeProfile.name}</span>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLockProfile}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-charcoal-400 hover:text-cream-200 hover:bg-charcoal-700/50 transition-colors"
+              title="Switch Profile"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              </svg>
+              Lock
+            </motion.button>
+          </div>
+        )}
       </div>
 
       {/* Window Controls */}
