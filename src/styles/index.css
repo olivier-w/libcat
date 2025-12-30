@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(26, 26, 46, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 162, 97, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 162, 97, 0.5);
+}
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #1a1a2e;
+  color: #fdf9f3;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Title bar drag region */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(26, 26, 46, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 162, 97, 0.1);
+}
+
+.glass-card {
+  background: rgba(47, 47, 79, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(244, 162, 97, 0.08);
+}
+
+/* Gradient accents */
+.gradient-accent {
+  background: linear-gradient(135deg, #f4a261 0%, #ef8533 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #f4a261 0%, #fad5a8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus styles */
+input:focus, button:focus, select:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: rgba(244, 162, 97, 0.5);
+}
+
+/* Rating stars */
+.star {
+  color: #47474f;
+  transition: color 0.15s ease;
+}
+
+.star.filled {
+  color: #f4a261;
+}
+
+.star:hover {
+  color: #fad5a8;
+}
+
+/* Movie card hover effect */
+.movie-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.movie-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Staggered animation delay utility */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Drop zone styles */
+.drop-zone {
+  border: 2px dashed rgba(244, 162, 97, 0.3);
+  transition: all 0.2s ease;
+}
+
+.drop-zone.active {
+  border-color: #f4a261;
+  background: rgba(244, 162, 97, 0.1);
+}
+
