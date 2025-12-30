@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A beautiful media library manager for organizing and tagging your local movie collection",
   "main": "dist-electron/main.js",
-  "author": "LibCat",
+  "author": "libcat",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -41,6 +41,5 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.6",
     "wait-on": "^8.0.1"
-  },
-  "build": "electron-builder.json"
+  }
 }
