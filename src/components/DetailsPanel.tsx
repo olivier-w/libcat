@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
+import { fuzzySearchTags } from '../utils/fuzzySearch'
 
 export function DetailsPanel() {
-  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, removeMoviesFromState, loadMovies, clearSelection } = useLibraryStore()
+  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection } = useLibraryStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editYear, setEditYear] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [showTagDropdown, setShowTagDropdown] = useState(false)
+  const [tagSearchQuery, setTagSearchQuery] = useState('')
+  const tagSearchInputRef = useRef<HTMLInputElement>(null)
 
   const isMultiSelect = selectedMovies.length > 1
 
@@ -21,6 +24,15 @@ export function DetailsPanel() {
       setEditNotes(selectedMovie.notes || '')
     }
   }, [selectedMovie, isMultiSelect])
+
+  // Focus search input when dropdown opens (must be before early returns)
+  useEffect(() => {
+    if (showTagDropdown && tagSearchInputRef.current) {
+      tagSearchInputRef.current.focus()
+    } else {
+      setTagSearchQuery('')
+    }
+  }, [showTagDropdown])
 
   // No selection
   if (selectedMovies.length === 0) {
@@ -142,6 +154,34 @@ export function DetailsPanel() {
   const availableTags = tags.filter(
     (tag) => !movie.tags?.some((t) => t.id === tag.id)
   )
+  
+  const filteredAvailableTags = fuzzySearchTags(availableTags, tagSearchQuery)
+
+  // Format file size from bytes to human-readable format
+  const formatFileSize = (bytes: number | null): string => {
+    if (!bytes) return 'Unknown'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let size = bytes
+    let unitIndex = 0
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024
+      unitIndex++
+    }
+    return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+  }
+
+  // Format duration from seconds to hours:minutes:seconds
+  const formatDuration = (seconds: number | null): string => {
+    if (!seconds) return 'Unknown'
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+  }
 
   return (
     <aside className="w-80 glass border-l border-charcoal-700/50 flex flex-col overflow-hidden">
@@ -250,21 +290,48 @@ export function DetailsPanel() {
                     Add
                   </button>
                   
-                  {showTagDropdown && availableTags.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 py-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10 min-w-[120px]">
-                      {availableTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => handleAddTag(tag.id)}
-                          className="w-full px-3 py-1.5 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          {tag.name}
-                        </button>
-                      ))}
+                  {showTagDropdown && (
+                    <div 
+                      className="absolute top-full left-0 mt-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10 min-w-[200px] max-w-[300px]"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setShowTagDropdown(false)
+                        }
+                      }}
+                    >
+                      {/* Search Input */}
+                      <div className="p-2 border-b border-charcoal-700">
+                        <input
+                          ref={tagSearchInputRef}
+                          type="text"
+                          value={tagSearchQuery}
+                          onChange={(e) => setTagSearchQuery(e.target.value)}
+                          placeholder="Search tags..."
+                          className="w-full px-2 py-1.5 rounded bg-charcoal-900 border border-charcoal-600 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      
+                      {/* Tag List */}
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {filteredAvailableTags.length > 0 ? (
+                          filteredAvailableTags.map((tag) => (
+                            <button
+                              key={tag.id}
+                              onClick={() => handleAddTag(tag.id)}
+                              className="w-full px-3 py-1.5 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+                            >
+                              <div
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              <span className="truncate">{tag.name}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <p className="px-3 py-2 text-sm text-charcoal-500">No tags found</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -290,6 +357,30 @@ export function DetailsPanel() {
                     <span className="text-charcoal-500 italic">No notes</span>
                   )}
                 </p>
+              )}
+            </div>
+
+            {/* File Info */}
+            <div className="grid grid-cols-2 gap-4">
+              {movie.file_size !== null && (
+                <div>
+                  <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-1">
+                    Size
+                  </label>
+                  <p className="text-sm text-cream-300">
+                    {formatFileSize(movie.file_size)}
+                  </p>
+                </div>
+              )}
+              {movie.duration !== null && (
+                <div>
+                  <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-1">
+                    Duration
+                  </label>
+                  <p className="text-sm text-cream-300">
+                    {formatDuration(movie.duration)}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -380,6 +471,19 @@ export function DetailsPanel() {
 function BulkActionsPanel() {
   const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState } = useLibraryStore()
   const [showTagDropdown, setShowTagDropdown] = useState(false)
+  const [bulkTagSearchQuery, setBulkTagSearchQuery] = useState('')
+  const bulkTagSearchInputRef = useRef<HTMLInputElement>(null)
+  
+  const filteredTags = fuzzySearchTags(tags, bulkTagSearchQuery)
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (showTagDropdown && bulkTagSearchInputRef.current) {
+      bulkTagSearchInputRef.current.focus()
+    } else {
+      setBulkTagSearchQuery('')
+    }
+  }, [showTagDropdown])
 
   const handleBulkAddTag = async (tagId: number) => {
     try {
@@ -518,23 +622,49 @@ function BulkActionsPanel() {
               </button>
               
               {showTagDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10 max-h-48 overflow-y-auto">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => handleBulkAddTag(tag.id)}
-                      className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      {tag.name}
-                    </button>
-                  ))}
-                  {tags.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-charcoal-500">No tags available</p>
-                  )}
+                <div 
+                  className="absolute top-full left-0 right-0 mt-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl z-10"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setShowTagDropdown(false)
+                    }
+                  }}
+                >
+                  {/* Search Input */}
+                  <div className="p-2 border-b border-charcoal-700">
+                    <input
+                      ref={bulkTagSearchInputRef}
+                      type="text"
+                      value={bulkTagSearchQuery}
+                      onChange={(e) => setBulkTagSearchQuery(e.target.value)}
+                      placeholder="Search tags..."
+                      className="w-full px-2 py-1.5 rounded bg-charcoal-900 border border-charcoal-600 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  
+                  {/* Tag List */}
+                  <div className="max-h-64 overflow-y-auto py-1">
+                    {filteredTags.length > 0 ? (
+                      filteredTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          onClick={() => handleBulkAddTag(tag.id)}
+                          className="w-full px-3 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          <span className="truncate">{tag.name}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-charcoal-500">
+                        {tags.length === 0 ? 'No tags available' : 'No tags found'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

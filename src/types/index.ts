@@ -21,6 +21,7 @@ export interface Tag {
   id: number
   name: string
   color: string
+  created_at: string
 }
 
 export type FilterType = 'all' | 'untagged' | 'watched' | 'favorites' | number // number = tag id

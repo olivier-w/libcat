@@ -21,6 +21,7 @@ export interface Tag {
   id: number
   name: string
   color: string
+  created_at: string
 }
 
 export class DatabaseService {
@@ -66,9 +67,15 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS tags (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL,
-        color TEXT DEFAULT '#f4a261'
+        color TEXT DEFAULT '#f4a261',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Add created_at column to existing tags table if it doesn't exist
+    try {
+      this.db.exec(`ALTER TABLE tags ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
+    } catch (e) { /* column already exists */ }
 
     // Create movie_tags junction table
     this.db.exec(`
@@ -219,7 +226,7 @@ export class DatabaseService {
 
   // Tags CRUD
   getAllTags(): Tag[] {
-    return this.db.prepare('SELECT * FROM tags ORDER BY name ASC').all() as Tag[]
+    return this.db.prepare('SELECT * FROM tags ORDER BY created_at DESC').all() as Tag[]
   }
 
   getTagById(id: number): Tag | undefined {

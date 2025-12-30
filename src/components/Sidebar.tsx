@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
-import { TagPill } from './TagPill'
 import type { FilterType } from '../types'
+import { fuzzySearchTags } from '../utils/fuzzySearch'
 
 const PRESET_COLORS = [
   '#f4a261', '#e76f51', '#2a9d8f', '#264653', '#e9c46a',
@@ -15,6 +15,9 @@ export function Sidebar() {
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0])
   const [editingTag, setEditingTag] = useState<number | null>(null)
+  const [tagSearchQuery, setTagSearchQuery] = useState('')
+  
+  const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
 
   const filters: { id: FilterType; label: string; icon: JSX.Element; count: number }[] = [
     {
@@ -193,9 +196,20 @@ export function Sidebar() {
           )}
         </AnimatePresence>
 
+        {/* Tag Search */}
+        <div className="mb-3">
+          <input
+            type="text"
+            value={tagSearchQuery}
+            onChange={(e) => setTagSearchQuery(e.target.value)}
+            placeholder="Search tags..."
+            className="w-full px-3 py-2 rounded-md bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+          />
+        </div>
+
         {/* Tags List */}
         <nav className="space-y-1">
-          {tags.map((tag) => (
+          {filteredTags.map((tag) => (
             <motion.div
               key={tag.id}
               whileHover={{ x: 2 }}
@@ -231,7 +245,13 @@ export function Sidebar() {
             </motion.div>
           ))}
           
-          {tags.length === 0 && !showCreateTag && (
+          {filteredTags.length === 0 && tagSearchQuery && (
+            <p className="text-sm text-charcoal-500 text-center py-4">
+              No tags found matching "{tagSearchQuery}"
+            </p>
+          )}
+          
+          {tags.length === 0 && !showCreateTag && !tagSearchQuery && (
             <p className="text-sm text-charcoal-500 text-center py-4">
               No tags yet. Click + to create one.
             </p>
