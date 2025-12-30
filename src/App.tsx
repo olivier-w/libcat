@@ -8,6 +8,13 @@ import { DetailsPanel } from './components/DetailsPanel'
 import { SearchBar } from './components/SearchBar'
 import { ScanModal } from './components/ScanModal'
 import { ProfileSelector } from './components/ProfileSelector'
+import { ToastContainer } from './components/Toast'
+
+interface Toast {
+  id: string
+  message: string
+  type?: 'success' | 'error' | 'info'
+}
 
 function App() {
   const { 
@@ -20,6 +27,16 @@ function App() {
     setIsScanning 
   } = useLibraryStore()
   const [showScanModal, setShowScanModal] = useState(false)
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Math.random().toString(36).substring(7)
+    setToasts((prev) => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
 
   useEffect(() => {
     if (activeProfile) {
@@ -58,11 +75,15 @@ function App() {
         // Reload all movies to get fresh data with tags
         await loadMovies()
       }
+      // Show success toast
+      addToast('Scan complete! Your library has been updated.', 'success')
     } catch (error) {
       console.error('Scan failed:', error)
+      addToast('Scan failed. Please try again.', 'error')
     } finally {
       setIsScanning(false)
       setScanProgress(null)
+      setShowScanModal(false)
     }
   }
 
@@ -84,11 +105,15 @@ function App() {
       if (newMovies.length > 0) {
         await loadMovies()
       }
+      // Show success toast
+      addToast('Scan complete! Your library has been updated.', 'success')
     } catch (error) {
       console.error('Failed to add files:', error)
+      addToast('Scan failed. Please try again.', 'error')
     } finally {
       setIsScanning(false)
       setScanProgress(null)
+      setShowScanModal(false)
     }
   }
 
@@ -150,10 +175,13 @@ function App() {
 
       {/* Scan Modal */}
       <AnimatePresence>
-        {showScanModal && (
-          <ScanModal onClose={() => !isScanning && setShowScanModal(false)} />
+        {showScanModal && isScanning && (
+          <ScanModal />
         )}
       </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

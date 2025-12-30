@@ -9,4 +9,5 @@ export { StarRating } from './StarRating'
 export { SearchBar } from './SearchBar'
 export { ScanModal } from './ScanModal'
 export { ProfileSelector } from './ProfileSelector'
+export { ToastContainer } from './Toast'
 
