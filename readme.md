@@ -105,6 +105,8 @@ libcat/
 - [ ] add list view column: file creation date (not just date added to library)
 - [ ] fuzzy search file names
 - [ ] if pw protected, encrypt thumbnails, tags, filters, data
+- [ ] add to favorites from detailspanel
+
 
 ## License
 

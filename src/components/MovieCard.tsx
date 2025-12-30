@@ -19,6 +19,11 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
     window.api.playVideo(movie.file_path)
   }
 
+  const handlePlayClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.api.playVideo(movie.file_path)
+  }
+
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.stopPropagation()
     try {
@@ -79,7 +84,7 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
       </div>
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
       {/* Tags Indicator */}
       {movie.tags && movie.tags.length > 0 && (
@@ -133,7 +138,7 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
       )}
 
       {/* Title Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
         <h3 className="text-sm font-medium text-white line-clamp-2 drop-shadow-lg">
           {movie.title || 'Untitled'}
         </h3>
@@ -143,8 +148,8 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
       </div>
 
       {/* Play Button on Hover */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <div className="w-14 h-14 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+        <div className="w-14 h-14 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform pointer-events-auto cursor-pointer" onClick={handlePlayClick}>
           <svg className="w-6 h-6 text-charcoal-900 ml-1" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
           </svg>

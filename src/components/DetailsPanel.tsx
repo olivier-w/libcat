@@ -96,6 +96,15 @@ export function DetailsPanel() {
     }
   }
 
+  const handleFavoriteToggle = async () => {
+    try {
+      await window.api.updateMovie(movie.id, { favorite: !movie.favorite })
+      updateMovieInState(movie.id, { favorite: !movie.favorite })
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to remove this movie from your library?')) return
     try {
@@ -126,28 +135,6 @@ export function DetailsPanel() {
       await loadMovies()
     } catch (error) {
       console.error('Failed to remove tag:', error)
-    }
-  }
-
-  const handleRegenerateThumbnail = async () => {
-    try {
-      const newPath = await window.api.regenerateThumbnail(movie.id, movie.file_path)
-      if (newPath) {
-        updateMovieInState(movie.id, { thumbnail_path: newPath })
-      }
-    } catch (error) {
-      console.error('Failed to regenerate thumbnail:', error)
-    }
-  }
-
-  const handleSetCustomThumbnail = async () => {
-    try {
-      const newPath = await window.api.setCustomThumbnail(movie.id)
-      if (newPath) {
-        updateMovieInState(movie.id, { thumbnail_path: newPath })
-      }
-    } catch (error) {
-      console.error('Failed to set custom thumbnail:', error)
     }
   }
 
@@ -209,19 +196,15 @@ export function DetailsPanel() {
               </div>
             )}
             
-            {/* Thumbnail Actions */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            {/* Play Button on Hover */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <button
-                onClick={handleRegenerateThumbnail}
-                className="px-3 py-1.5 rounded-lg bg-charcoal-800 text-cream-200 text-xs hover:bg-charcoal-700 transition-colors"
+                onClick={() => window.api.playVideo(movie.file_path)}
+                className="w-16 h-16 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
               >
-                Regenerate
-              </button>
-              <button
-                onClick={handleSetCustomThumbnail}
-                className="px-3 py-1.5 rounded-lg bg-charcoal-800 text-cream-200 text-xs hover:bg-charcoal-700 transition-colors"
-              >
-                Custom
+                <svg className="w-7 h-7 text-charcoal-900 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
               </button>
             </div>
           </div>
@@ -452,8 +435,23 @@ export function DetailsPanel() {
                     {movie.watched ? 'Watched' : 'Mark Watched'}
                   </button>
                   <button
+                    onClick={handleFavoriteToggle}
+                    className={`flex-1 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${
+                      movie.favorite
+                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                        : 'bg-charcoal-800 text-cream-300 hover:bg-charcoal-700'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    {movie.favorite ? 'Favorited' : 'Favorite'}
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
                     onClick={handleDelete}
-                    className="px-4 py-2 rounded-lg bg-charcoal-800 text-red-400 text-sm hover:bg-red-500/20 transition-colors"
+                    className="w-full py-2 rounded-lg bg-charcoal-800 text-red-400 text-sm hover:bg-red-500/20 transition-colors"
                   >
                     Remove
                   </button>

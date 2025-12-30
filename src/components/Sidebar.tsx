@@ -196,14 +196,27 @@ export function Sidebar() {
         </AnimatePresence>
 
         {/* Tag Search */}
-        <div className="mb-3">
+        <div className="mb-3 relative">
           <input
             type="text"
             value={tagSearchQuery}
             onChange={(e) => setTagSearchQuery(e.target.value)}
             placeholder="Search tags..."
-            className="w-full px-3 py-2 rounded-md bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+            className="w-full px-3 py-2 rounded-md bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors pr-10"
           />
+          {tagSearchQuery && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => setTagSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-charcoal-400 hover:text-cream-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </motion.button>
+          )}
         </div>
 
         {/* Tags List */}
