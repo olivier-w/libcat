@@ -85,6 +85,27 @@ libcat/
 └── package.json
 ```
 
+## Todo
+- [ ] Add duration to preview pane
+- [ ] Make sidebars collapsable
+- [ ] change window close buttons to generic, not macos
+- [ ] make sure hover action in gallery view are clickable
+- [ ] search tags
+- [ ] multi-tag search
+- [ ] edit tags (color, name)
+- [ ] context menu on list and gallery view: edit, remove, play, open location, etc
+- [ ] when holding shift, remove text-select on cards
+- [ ] update ui when removing or adding tags
+- [ ] add actor, director, series fields. ability to also filter by field + tags
+- [ ] tmdb api connection, pull details
+- [ ] ability to add a movie to "want to watch"
+- [ ] ability to create new categories, and rename
+- [ ] when bulk adding tags, better ux, type to narrow search, see all results, etc
+- [ ] import/export library & tags
+- [ ] add list view column: file creation date (not just date added to library)
+- [ ] fuzzy search file names
+- [ ] if pw protected, encrypt thumbnails, tags, filters, data
+
 ## License
 
 MIT
