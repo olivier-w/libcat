@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   unlockProfile: (id: string, password?: string) => ipcRenderer.invoke('profiles:unlock', id, password),
   lockProfile: () => ipcRenderer.invoke('profiles:lock'),
   hasPassword: (id: string) => ipcRenderer.invoke('profiles:hasPassword', id),
+  removePassword: (id: string, password: string) => ipcRenderer.invoke('profiles:removePassword', id, password),
 
   // Movies
   getMovies: () => ipcRenderer.invoke('movies:getAll'),
@@ -92,6 +93,7 @@ export type Api = {
   unlockProfile: (id: string, password?: string) => Promise<{ success: boolean; profile: Profile }>
   lockProfile: () => Promise<{ success: boolean }>
   hasPassword: (id: string) => Promise<boolean>
+  removePassword: (id: string, password: string) => Promise<Profile>
   
   // Movies
   getMovies: () => Promise<any[]>
