@@ -187,6 +187,10 @@ function registerIpcHandlers() {
     return profileService.hasPassword(id)
   })
 
+  ipcMain.handle('profiles:removePassword', async (_, id: string, password: string) => {
+    return profileService.removePassword(id, password)
+  })
+
   // Movies CRUD - now requires profile to be unlocked
   ipcMain.handle('movies:getAll', async () => {
     if (!db) throw new Error('No profile selected')

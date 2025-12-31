@@ -175,6 +175,31 @@ export class ProfileService {
     return profile?.passwordHash !== null
   }
 
+  removePassword(id: string, password: string): Profile {
+    const profile = this.data.profiles.find(p => p.id === id)
+    if (!profile) {
+      throw new Error('Profile not found')
+    }
+
+    // Verify password before removing
+    if (!profile.passwordHash) {
+      throw new Error('Profile does not have a password')
+    }
+
+    if (!this.verifyPasswordHash(password, profile.passwordHash)) {
+      throw new Error('Invalid password')
+    }
+
+    // Remove password
+    profile.passwordHash = null
+    this.saveProfiles()
+
+    return {
+      ...profile,
+      passwordHash: null
+    }
+  }
+
   // Migrate existing data to a default profile
   migrateExistingData(): Profile | null {
     const oldDbPath = path.join(this.baseDir, 'libcat.db')
