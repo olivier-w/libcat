@@ -141,26 +141,58 @@ export class TMDBService {
 
   parseFilename(filename: string): { title: string; year: number | null } {
     let name = path.basename(filename, path.extname(filename))
-    const yearPatterns = [/\((\d{4})\)/, /\[(\d{4})\]/, /\.(\d{4})\./, /\s(\d{4})$/, /[-_](\d{4})[-_]/]
+    
+    // First, normalize separators to spaces
+    name = name.replace(/[._-]/g, ' ')
+    
+    // Quality/release indicators that often follow the year
+    const qualityIndicators = /\b(720p|1080p|2160p|4k|uhd|hdr10|hdr|bluray|blu ray|bdrip|brrip|webrip|web dl|web|dvdrip|hdtv|x264|x265|hevc|aac|ac3|dts|remastered|extended|unrated|directors cut|proper|repack|internal)\b/gi
+    
+    // Find year - it's typically a 4-digit number (1900-2099) that appears before quality indicators
     let year: number | null = null
-    for (const pattern of yearPatterns) {
-      const match = name.match(pattern)
-      if (match) {
-        const potentialYear = parseInt(match[1])
-        if (potentialYear >= 1900 && potentialYear <= 2100) {
-          year = potentialYear
-          name = name.replace(pattern, ' ')
-          break
+    
+    // Pattern: year followed by quality indicator or end of useful content
+    const yearMatch = name.match(/\b(19\d{2}|20\d{2})\b/g)
+    if (yearMatch) {
+      // Take the last valid year found before quality indicators
+      for (const potentialYear of yearMatch) {
+        const yearNum = parseInt(potentialYear)
+        if (yearNum >= 1900 && yearNum <= new Date().getFullYear() + 1) {
+          // Check if this year appears before quality indicators
+          const yearIndex = name.indexOf(potentialYear)
+          const qualityMatch = name.match(qualityIndicators)
+          if (qualityMatch) {
+            const qualityIndex = name.toLowerCase().indexOf(qualityMatch[0].toLowerCase())
+            if (yearIndex < qualityIndex) {
+              year = yearNum
+              // Truncate everything from the year onwards
+              name = name.substring(0, yearIndex)
+              break
+            }
+          } else {
+            // No quality indicators, just use the year
+            year = yearNum
+            name = name.substring(0, yearIndex)
+            break
+          }
         }
       }
     }
-    return { title: this.cleanTitle(name), year }
+    
+    // Clean up the title
+    const title = name
+      .replace(/\[.*?\]/g, '')       // Remove bracketed content
+      .replace(/\(.*?\)/g, '')       // Remove parenthetical content
+      .replace(/\s+/g, ' ')          // Normalize whitespace
+      .trim()
+    
+    return { title, year }
   }
 
   private cleanTitle(title: string): string {
     return title
       .replace(/[._-]/g, ' ')
-      .replace(/\b(720p|1080p|2160p|4k|uhd|hdr|bluray|blu-ray|bdrip|brrip|webrip|web-dl|dvdrip|hdtv|x264|x265|hevc|aac|ac3|dts)\b/gi, '')
+      .replace(/\b(720p|1080p|2160p|4k|uhd|hdr|bluray|blu-ray|bdrip|brrip|webrip|web-dl|dvdrip|hdtv|x264|x265|hevc|aac|ac3|dts|remastered)\b/gi, '')
       .replace(/\[.*?\]/g, '')
       .replace(/\(.*?\)/g, '')
       .replace(/\s+/g, ' ')
