@@ -8,6 +8,7 @@ import { DetailsPanel } from './components/DetailsPanel'
 import { ScanModal } from './components/ScanModal'
 import { ProfileSelector } from './components/ProfileSelector'
 import { ToastContainer } from './components/Toast'
+import { SettingsModal } from './components/SettingsModal'
 
 interface Toast {
   id: string
@@ -26,6 +27,7 @@ function App() {
     setIsScanning 
   } = useLibraryStore()
   const [showScanModal, setShowScanModal] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -138,7 +140,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <Sidebar onAddFolder={handleAddFolder} />
+        <Sidebar onAddFolder={handleAddFolder} onOpenSettings={() => setShowSettings(true)} />
 
         {/* Center - Gallery */}
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -154,6 +156,11 @@ function App() {
         {showScanModal && isScanning && (
           <ScanModal />
         )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
       </AnimatePresence>
 
       {/* Toast Notifications */}

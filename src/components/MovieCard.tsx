@@ -34,10 +34,15 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
     }
   }
 
-  const getThumbnailUrl = () => {
-    if (!movie.thumbnail_path) return null
-    // Use custom protocol to load local files (extra slash for Windows absolute paths)
-    return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
+  // Prefer TMDB poster, fall back to thumbnail
+  const getPosterUrl = () => {
+    if (movie.tmdb_poster_path) {
+      return `local-file:///${movie.tmdb_poster_path.replace(/\\/g, '/')}`
+    }
+    if (movie.thumbnail_path) {
+      return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
+    }
+    return null
   }
 
   const handleClick = (e: React.MouseEvent) => {
@@ -48,7 +53,7 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
     setImageLoaded(true)
   }, [])
 
-  const thumbnailUrl = getThumbnailUrl()
+  const posterUrl = getPosterUrl()
 
   return (
     <div
@@ -59,22 +64,22 @@ function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieC
         isSelected ? 'movie-card-selected' : ''
       }`}
     >
-      {/* Thumbnail with smooth fade-in */}
+      {/* Poster with smooth fade-in */}
       <div className="thumbnail-container">
         {/* Always show placeholder for smooth crossfade */}
         <div className="thumbnail-placeholder" />
         
-        {thumbnailUrl && shouldLoadImage && (
+        {posterUrl && shouldLoadImage && (
           <img
-            src={thumbnailUrl}
-            alt={movie.title || 'Movie thumbnail'}
+            src={posterUrl}
+            alt={movie.title || 'Movie poster'}
             className={`thumbnail-image ${imageLoaded ? 'loaded' : ''}`}
             onLoad={handleImageLoad}
           />
         )}
         
-        {/* No thumbnail fallback icon */}
-        {!thumbnailUrl && (
+        {/* No poster fallback icon */}
+        {!posterUrl && (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg className="w-12 h-12 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -171,6 +176,7 @@ export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
   if (prevProps.movie.favorite !== nextProps.movie.favorite) return false
   if (prevProps.movie.watched !== nextProps.movie.watched) return false
   if (prevProps.movie.thumbnail_path !== nextProps.movie.thumbnail_path) return false
+  if (prevProps.movie.tmdb_poster_path !== nextProps.movie.tmdb_poster_path) return false
   
   // For tags, just check length and reference - deep equality rarely needed
   const prevTags = prevProps.movie.tags
