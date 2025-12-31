@@ -5,6 +5,7 @@ import { DatabaseService } from './services/database'
 import { FileScanner } from './services/scanner'
 import { ThumbnailService } from './services/thumbnails'
 import { ProfileService } from './services/profiles'
+import { TMDBService } from './services/tmdb'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -14,6 +15,7 @@ let scanner: FileScanner
 let thumbnailService: ThumbnailService | null = null
 let profileService: ProfileService
 let userDataPath: string
+let currentProfilePath: string | null = null
 
 // Register custom protocol for local files
 function registerLocalFileProtocol() {
@@ -75,6 +77,7 @@ function createWindow() {
 // Initialize services for a specific profile
 function initializeProfileServices(profileId: string) {
   const profilePath = profileService.getProfilePath(profileId)
+  currentProfilePath = profilePath
   db = new DatabaseService(profilePath)
   thumbnailService = new ThumbnailService(profilePath)
 }
@@ -83,6 +86,15 @@ function initializeProfileServices(profileId: string) {
 function clearProfileServices() {
   db = null
   thumbnailService = null
+  currentProfilePath = null
+}
+
+// Helper to get TMDB service if API key is configured
+function getTmdbService(): TMDBService | null {
+  if (!db || !currentProfilePath) return null
+  const apiKey = db.getSetting('tmdb_api_key')
+  if (!apiKey) return null
+  return new TMDBService(apiKey, currentProfilePath)
 }
 
 app.whenReady().then(() => {
@@ -262,6 +274,9 @@ function registerIpcHandlers() {
     
     const videoFiles = await scanner.scanFolder(folderPath)
     const results: any[] = []
+    
+    // Get TMDB service if API key is configured
+    const tmdb = getTmdbService()
 
     for (let i = 0; i < videoFiles.length; i++) {
       const file = videoFiles[i]
@@ -285,13 +300,40 @@ function registerIpcHandlers() {
       }
 
       // Add to database
-      const movie = db.addMovie({
+      let movie = db.addMovie({
         file_path: file.path,
         title: file.name,
         thumbnail_path: thumbnailPath,
         file_size: file.size,
         duration: duration,
       })
+
+      // Auto-match with TMDB if API key is configured
+      if (tmdb) {
+        try {
+          const { title, year } = tmdb.parseFilename(file.name)
+          const match = await tmdb.matchMovie(title, year || undefined)
+          
+          if (match) {
+            const movieData = await tmdb.fetchMovieData(match.id, movie.id)
+            movie = db.updateMovie(movie.id, {
+              tmdb_id: movieData.tmdb_id,
+              tmdb_poster_path: movieData.tmdb_poster_path,
+              tmdb_rating: movieData.tmdb_rating,
+              tmdb_overview: movieData.tmdb_overview,
+              tmdb_director: movieData.tmdb_director,
+              tmdb_cast: movieData.tmdb_cast,
+              tmdb_release_date: movieData.tmdb_release_date,
+              tmdb_genres: movieData.tmdb_genres,
+              year: movieData.year,
+              title: movieData.title,
+            })
+          }
+        } catch (error) {
+          console.error('TMDB auto-match failed for', file.name, error)
+          // Continue without TMDB data - movie is already in database
+        }
+      }
 
       results.push(movie)
 
@@ -354,6 +396,7 @@ function registerIpcHandlers() {
     if (!db || !thumbnailService) throw new Error('No profile selected')
     
     const results: any[] = []
+    const tmdb = getTmdbService()
 
     for (const filePath of paths) {
       const stats = await scanner.getFileStats(filePath)
@@ -375,17 +418,140 @@ function registerIpcHandlers() {
         console.error('Failed to generate thumbnail:', error)
       }
 
-      const movie = db.addMovie({
+      const filename = path.basename(filePath, path.extname(filePath))
+      let movie = db.addMovie({
         file_path: filePath,
-        title: path.basename(filePath, path.extname(filePath)),
+        title: filename,
         thumbnail_path: thumbnailPath,
         file_size: stats.size,
         duration: duration,
       })
 
+      // Auto-match with TMDB if API key is configured
+      if (tmdb) {
+        try {
+          const { title, year } = tmdb.parseFilename(filename)
+          const match = await tmdb.matchMovie(title, year || undefined)
+          
+          if (match) {
+            const movieData = await tmdb.fetchMovieData(match.id, movie.id)
+            movie = db.updateMovie(movie.id, {
+              tmdb_id: movieData.tmdb_id,
+              tmdb_poster_path: movieData.tmdb_poster_path,
+              tmdb_rating: movieData.tmdb_rating,
+              tmdb_overview: movieData.tmdb_overview,
+              tmdb_director: movieData.tmdb_director,
+              tmdb_cast: movieData.tmdb_cast,
+              tmdb_release_date: movieData.tmdb_release_date,
+              tmdb_genres: movieData.tmdb_genres,
+              year: movieData.year,
+              title: movieData.title,
+            })
+          }
+        } catch (error) {
+          console.error('TMDB auto-match failed for', filename, error)
+        }
+      }
+
       results.push(movie)
     }
 
     return results
+  })
+
+  // TMDB API handlers
+  ipcMain.handle('tmdb:getApiKey', async () => {
+    if (!db) throw new Error('No profile selected')
+    return db.getSetting('tmdb_api_key') || null
+  })
+
+  ipcMain.handle('tmdb:setApiKey', async (_, apiKey: string) => {
+    if (!db || !currentProfilePath) throw new Error('No profile selected')
+    if (apiKey) {
+      const tmdb = new TMDBService(apiKey, currentProfilePath)
+      const isValid = await tmdb.validateApiKey()
+      if (!isValid) throw new Error('Invalid TMDB API key')
+      db.setSetting('tmdb_api_key', apiKey)
+    } else {
+      db.deleteSetting('tmdb_api_key')
+    }
+    return { success: true }
+  })
+
+  ipcMain.handle('tmdb:search', async (_, query: string, year?: number) => {
+    const tmdb = getTmdbService()
+    if (!tmdb) throw new Error('TMDB API key not configured')
+    return await tmdb.searchMovies(query, year)
+  })
+
+  ipcMain.handle('tmdb:linkMovie', async (_, movieId: number, tmdbId: number) => {
+    if (!db) throw new Error('No profile selected')
+    const tmdb = getTmdbService()
+    if (!tmdb) throw new Error('TMDB API key not configured')
+    const movieData = await tmdb.fetchMovieData(tmdbId, movieId)
+    return db.updateMovie(movieId, {
+      tmdb_id: movieData.tmdb_id,
+      tmdb_poster_path: movieData.tmdb_poster_path,
+      tmdb_rating: movieData.tmdb_rating,
+      tmdb_overview: movieData.tmdb_overview,
+      tmdb_director: movieData.tmdb_director,
+      tmdb_cast: movieData.tmdb_cast,
+      tmdb_release_date: movieData.tmdb_release_date,
+      tmdb_genres: movieData.tmdb_genres,
+      year: movieData.year,
+      title: movieData.title,
+    })
+  })
+
+  ipcMain.handle('tmdb:unlinkMovie', async (_, movieId: number) => {
+    if (!db) throw new Error('No profile selected')
+    return db.unlinkTmdb(movieId)
+  })
+
+  ipcMain.handle('tmdb:refreshMetadata', async (_, movieId: number) => {
+    if (!db) throw new Error('No profile selected')
+    const tmdb = getTmdbService()
+    if (!tmdb) throw new Error('TMDB API key not configured')
+    const movie = db.getMovieById(movieId)
+    if (!movie || !movie.tmdb_id) throw new Error('Movie not linked to TMDB')
+    const movieData = await tmdb.fetchMovieData(movie.tmdb_id, movieId)
+    return db.updateMovie(movieId, {
+      tmdb_poster_path: movieData.tmdb_poster_path,
+      tmdb_rating: movieData.tmdb_rating,
+      tmdb_overview: movieData.tmdb_overview,
+      tmdb_director: movieData.tmdb_director,
+      tmdb_cast: movieData.tmdb_cast,
+      tmdb_release_date: movieData.tmdb_release_date,
+      tmdb_genres: movieData.tmdb_genres,
+    })
+  })
+
+  ipcMain.handle('tmdb:autoMatch', async (_, movieId: number) => {
+    if (!db) throw new Error('No profile selected')
+    const tmdb = getTmdbService()
+    if (!tmdb) throw new Error('TMDB API key not configured')
+    const movie = db.getMovieById(movieId)
+    if (!movie) throw new Error('Movie not found')
+    const { title, year } = tmdb.parseFilename(movie.file_path)
+    const match = await tmdb.matchMovie(title, year || undefined)
+    if (!match) return { matched: false, movie }
+    const movieData = await tmdb.fetchMovieData(match.id, movieId)
+    const updatedMovie = db.updateMovie(movieId, {
+      tmdb_id: movieData.tmdb_id,
+      tmdb_poster_path: movieData.tmdb_poster_path,
+      tmdb_rating: movieData.tmdb_rating,
+      tmdb_overview: movieData.tmdb_overview,
+      tmdb_director: movieData.tmdb_director,
+      tmdb_cast: movieData.tmdb_cast,
+      tmdb_release_date: movieData.tmdb_release_date,
+      tmdb_genres: movieData.tmdb_genres,
+      year: movieData.year,
+      title: movieData.title,
+    })
+    return { matched: true, movie: updatedMovie }
+  })
+
+  ipcMain.handle('tmdb:openInBrowser', async (_, tmdbId: number) => {
+    shell.openExternal(TMDBService.getTmdbUrl(tmdbId))
   })
 }

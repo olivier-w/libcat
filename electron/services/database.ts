@@ -15,6 +15,15 @@ export interface Movie {
   duration: number | null
   created_at: string
   updated_at: string
+  // TMDB fields
+  tmdb_id: number | null
+  tmdb_poster_path: string | null
+  tmdb_rating: number | null
+  tmdb_overview: string | null
+  tmdb_director: string | null
+  tmdb_cast: string | null
+  tmdb_release_date: string | null
+  tmdb_genres: string | null
 }
 
 export interface Tag {
@@ -56,12 +65,20 @@ export class DatabaseService {
     `)
 
     // Add new columns if they don't exist (for existing databases)
-    try {
-      this.db.exec(`ALTER TABLE movies ADD COLUMN file_size INTEGER`)
-    } catch (e) { /* column already exists */ }
-    try {
-      this.db.exec(`ALTER TABLE movies ADD COLUMN duration REAL`)
-    } catch (e) { /* column already exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN file_size INTEGER`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN duration REAL`) } catch (e) { /* exists */ }
+    // TMDB columns
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_id INTEGER`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_poster_path TEXT`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_rating REAL`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_overview TEXT`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_director TEXT`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_cast TEXT`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_release_date TEXT`) } catch (e) { /* exists */ }
+    try { this.db.exec(`ALTER TABLE movies ADD COLUMN tmdb_genres TEXT`) } catch (e) { /* exists */ }
+
+    // Settings table
+    this.db.exec(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`)
 
     // Create tags table
     this.db.exec(`
@@ -135,7 +152,7 @@ export class DatabaseService {
 
   updateMovie(id: number, data: Partial<Omit<Movie, 'id' | 'created_at'>>): Movie {
     // Whitelist of valid database columns (excluding id, created_at, updated_at)
-    const validColumns = ['file_path', 'title', 'year', 'rating', 'notes', 'watched', 'favorite', 'thumbnail_path', 'file_size', 'duration']
+    const validColumns = ['file_path', 'title', 'year', 'rating', 'notes', 'watched', 'favorite', 'thumbnail_path', 'file_size', 'duration', 'tmdb_id', 'tmdb_poster_path', 'tmdb_rating', 'tmdb_overview', 'tmdb_director', 'tmdb_cast', 'tmdb_release_date', 'tmdb_genres']
     
     // Filter and process only valid columns with defined values
     const processedData: any = { id }
@@ -291,6 +308,26 @@ export class DatabaseService {
       WHERE mt.tag_id = ?
       ORDER BY m.title ASC
     `).all(tagId) as Movie[]
+  }
+
+  // Settings
+  getSetting(key: string): string | null {
+    const result = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
+    return result?.value ?? null
+  }
+
+  setSetting(key: string, value: string): void {
+    this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value)
+  }
+
+  deleteSetting(key: string): void {
+    this.db.prepare('DELETE FROM settings WHERE key = ?').run(key)
+  }
+
+  // TMDB
+  unlinkTmdb(movieId: number): Movie {
+    this.db.prepare(`UPDATE movies SET tmdb_id = NULL, tmdb_poster_path = NULL, tmdb_rating = NULL, tmdb_overview = NULL, tmdb_director = NULL, tmdb_cast = NULL, tmdb_release_date = NULL, tmdb_genres = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(movieId)
+    return this.getMovieById(movieId)!
   }
 }
 

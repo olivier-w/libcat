@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
+import { TMDBSearchModal } from './TMDBSearchModal'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
-import type { Tag } from '../types'
+import type { Tag, TMDBCastMember, Movie } from '../types'
 
 // Smart dropdown component that renders via portal and positions intelligently
 interface TagDropdownProps {
@@ -220,6 +221,8 @@ export function DetailsPanel() {
   const [editNotes, setEditNotes] = useState('')
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [tagSearchQuery, setTagSearchQuery] = useState('')
+  const [showTMDBSearch, setShowTMDBSearch] = useState(false)
+  const [isAutoMatching, setIsAutoMatching] = useState(false)
   const tagSearchInputRef = useRef<HTMLInputElement>(null)
   const addTagButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -264,9 +267,55 @@ export function DetailsPanel() {
   // Single selection - original panel (selectedMovie is guaranteed here)
   const movie = selectedMovie!
 
-  const getThumbnailUrl = () => {
-    if (!movie.thumbnail_path) return null
-    return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
+  // Prefer TMDB poster, fall back to thumbnail
+  const getPosterUrl = () => {
+    if (movie.tmdb_poster_path) {
+      return `local-file:///${movie.tmdb_poster_path.replace(/\\/g, '/')}`
+    }
+    if (movie.thumbnail_path) {
+      return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
+    }
+    return null
+  }
+
+  // Parse TMDB JSON fields
+  const parsedCast: TMDBCastMember[] = movie.tmdb_cast ? JSON.parse(movie.tmdb_cast) : []
+  const parsedGenres: string[] = movie.tmdb_genres ? JSON.parse(movie.tmdb_genres) : []
+
+  const handleTMDBLinked = (updatedMovie: Movie) => {
+    updateMovieInState(updatedMovie.id, updatedMovie)
+  }
+
+  const handleAutoMatch = async () => {
+    setIsAutoMatching(true)
+    try {
+      const result = await window.api.tmdbAutoMatch(movie.id)
+      if (result.matched) {
+        updateMovieInState(movie.id, result.movie)
+      } else {
+        setShowTMDBSearch(true)
+      }
+    } catch (error) {
+      console.error('Auto-match failed:', error)
+      setShowTMDBSearch(true)
+    } finally {
+      setIsAutoMatching(false)
+    }
+  }
+
+  const handleUnlinkTMDB = async () => {
+    try {
+      const updatedMovie = await window.api.tmdbUnlinkMovie(movie.id)
+      updateMovieInState(movie.id, updatedMovie)
+    } catch (error) {
+      console.error('Failed to unlink TMDB:', error)
+    }
+  }
+
+  const handleOpenTMDB = () => {
+    if (movie.tmdb_id) {
+      window.api.tmdbOpenInBrowser(movie.tmdb_id)
+    }
   }
 
   const handleSave = async () => {
@@ -404,11 +453,11 @@ export function DetailsPanel() {
           className="flex-1 flex flex-col overflow-y-auto"
         >
           {/* Poster */}
-          <div className="relative aspect-video bg-charcoal-800 group">
-            {getThumbnailUrl() ? (
+          <div className="relative aspect-[2/3] bg-charcoal-800 group">
+            {getPosterUrl() ? (
               <img
-                src={getThumbnailUrl()!}
-                alt={movie.title || 'Movie thumbnail'}
+                src={getPosterUrl()!}
+                alt={movie.title || 'Movie poster'}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -416,6 +465,13 @@ export function DetailsPanel() {
                 <svg className="w-16 h-16 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
+              </div>
+            )}
+            
+            {/* TMDB Badge */}
+            {movie.tmdb_id && (
+              <div className="absolute top-2 left-2 px-2 py-1 rounded bg-gradient-to-r from-[#01b4e4] to-[#90cea1] text-white text-[10px] font-bold uppercase tracking-wider shadow-lg">
+                TMDB
               </div>
             )}
             
@@ -466,10 +522,73 @@ export function DetailsPanel() {
             {/* Rating */}
             <div>
               <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-2">
-                Rating
+                Your Rating
               </label>
               <StarRating value={movie.rating || 0} onChange={handleRatingChange} />
             </div>
+
+            {/* TMDB Rating & Info */}
+            {movie.tmdb_id && (
+              <>
+                {movie.tmdb_rating !== null && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="text-sm font-medium text-cream-100">{movie.tmdb_rating.toFixed(1)}</span>
+                      <span className="text-xs text-charcoal-400">/10</span>
+                    </div>
+                    {movie.tmdb_director && (
+                      <span className="text-xs text-charcoal-400">
+                        Dir. <span className="text-cream-300">{movie.tmdb_director}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Genres */}
+                {parsedGenres.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {parsedGenres.map((genre, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-full bg-charcoal-700/50 text-xs text-cream-300">
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Overview */}
+                {movie.tmdb_overview && (
+                  <div>
+                    <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-1.5">
+                      Overview
+                    </label>
+                    <p className="text-xs text-charcoal-300 leading-relaxed line-clamp-4">
+                      {movie.tmdb_overview}
+                    </p>
+                  </div>
+                )}
+
+                {/* Cast */}
+                {parsedCast.length > 0 && (
+                  <div>
+                    <label className="text-xs text-charcoal-400 uppercase tracking-wider block mb-1.5">
+                      Cast
+                    </label>
+                    <div className="text-xs text-charcoal-300 space-y-0.5">
+                      {parsedCast.slice(0, 5).map((member, i) => (
+                        <div key={i}>
+                          <span className="text-cream-200">{member.name}</span>
+                          <span className="text-charcoal-500"> as </span>
+                          <span>{member.character}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Tags */}
             <div>
@@ -647,6 +766,57 @@ export function DetailsPanel() {
                     {movie.favorite ? 'Favorited' : 'Favorite'}
                   </button>
                 </div>
+
+                {/* TMDB Actions */}
+                <div className="flex gap-2">
+                  {movie.tmdb_id ? (
+                    <>
+                      <button
+                        onClick={handleOpenTMDB}
+                        className="flex-1 py-2 rounded-lg bg-gradient-to-r from-[#01b4e4]/20 to-[#90cea1]/20 text-[#01b4e4] text-sm hover:from-[#01b4e4]/30 hover:to-[#90cea1]/30 transition-all flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        View on TMDB
+                      </button>
+                      <button
+                        onClick={handleUnlinkTMDB}
+                        className="px-3 py-2 rounded-lg bg-charcoal-800 text-charcoal-400 text-sm hover:bg-charcoal-700 hover:text-cream-200 transition-colors"
+                        title="Unlink from TMDB"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleAutoMatch}
+                      disabled={isAutoMatching}
+                      className="flex-1 py-2 rounded-lg bg-gradient-to-r from-[#01b4e4]/20 to-[#90cea1]/20 text-[#01b4e4] text-sm hover:from-[#01b4e4]/30 hover:to-[#90cea1]/30 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    >
+                      {isAutoMatching ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Matching...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          Find on TMDB
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <button
                     onClick={handleDelete}
@@ -660,6 +830,14 @@ export function DetailsPanel() {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* TMDB Search Modal */}
+      <TMDBSearchModal
+        isOpen={showTMDBSearch}
+        onClose={() => setShowTMDBSearch(false)}
+        movie={movie}
+        onLinked={handleTMDBLinked}
+      />
     </aside>
   )
 }

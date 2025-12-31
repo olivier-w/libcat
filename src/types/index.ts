@@ -13,6 +13,31 @@ export interface Movie {
   created_at: string
   updated_at: string
   tags?: Tag[]
+  // TMDB fields
+  tmdb_id: number | null
+  tmdb_poster_path: string | null
+  tmdb_rating: number | null
+  tmdb_overview: string | null
+  tmdb_director: string | null
+  tmdb_cast: string | null
+  tmdb_release_date: string | null
+  tmdb_genres: string | null
+}
+
+export interface TMDBCastMember {
+  name: string
+  character: string
+}
+
+export interface TMDBSearchResult {
+  id: number
+  title: string
+  original_title: string
+  overview: string
+  poster_path: string | null
+  release_date: string
+  vote_average: number
+  popularity: number
 }
 
 export type ViewMode = 'grid' | 'list'
@@ -31,4 +56,3 @@ export interface ScanProgress {
   total: number
   file: string
 }
-

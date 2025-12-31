@@ -65,6 +65,16 @@ contextBridge.exposeInMainWorld('api', {
 
   // Drag and drop
   addFromPaths: (paths: string[]) => ipcRenderer.invoke('files:addFromPaths', paths),
+
+  // TMDB
+  tmdbGetApiKey: () => ipcRenderer.invoke('tmdb:getApiKey'),
+  tmdbSetApiKey: (apiKey: string) => ipcRenderer.invoke('tmdb:setApiKey', apiKey),
+  tmdbSearch: (query: string, year?: number) => ipcRenderer.invoke('tmdb:search', query, year),
+  tmdbLinkMovie: (movieId: number, tmdbId: number) => ipcRenderer.invoke('tmdb:linkMovie', movieId, tmdbId),
+  tmdbUnlinkMovie: (movieId: number) => ipcRenderer.invoke('tmdb:unlinkMovie', movieId),
+  tmdbRefreshMetadata: (movieId: number) => ipcRenderer.invoke('tmdb:refreshMetadata', movieId),
+  tmdbAutoMatch: (movieId: number) => ipcRenderer.invoke('tmdb:autoMatch', movieId),
+  tmdbOpenInBrowser: (tmdbId: number) => ipcRenderer.invoke('tmdb:openInBrowser', tmdbId),
 })
 
 // Type declarations for the exposed API
@@ -118,6 +128,27 @@ export type Api = {
   
   // Drag and drop
   addFromPaths: (paths: string[]) => Promise<any[]>
+
+  // TMDB
+  tmdbGetApiKey: () => Promise<string | null>
+  tmdbSetApiKey: (apiKey: string) => Promise<{ success: boolean }>
+  tmdbSearch: (query: string, year?: number) => Promise<TMDBSearchResult[]>
+  tmdbLinkMovie: (movieId: number, tmdbId: number) => Promise<any>
+  tmdbUnlinkMovie: (movieId: number) => Promise<any>
+  tmdbRefreshMetadata: (movieId: number) => Promise<any>
+  tmdbAutoMatch: (movieId: number) => Promise<{ matched: boolean; movie: any }>
+  tmdbOpenInBrowser: (tmdbId: number) => Promise<void>
+}
+
+export interface TMDBSearchResult {
+  id: number
+  title: string
+  original_title: string
+  overview: string
+  poster_path: string | null
+  release_date: string
+  vote_average: number
+  popularity: number
 }
 
 declare global {
