@@ -47,7 +47,7 @@ export function SearchBar() {
   }
 
   return (
-    <div className="relative flex-1 max-w-md">
+    <div className="relative w-full">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <svg className="w-4 h-4 text-charcoal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -59,7 +59,7 @@ export function SearchBar() {
         type="text"
         value={localQuery}
         onChange={(e) => setLocalQuery(e.target.value)}
-        placeholder="Search movies... (Ctrl+F)"
+        placeholder="Search movies..."
         className="w-full pl-10 pr-10 py-2 rounded-lg bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition-all"
       />
 

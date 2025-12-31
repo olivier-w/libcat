@@ -3,13 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { FilterType } from '../types'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
+import { SearchBar } from './SearchBar'
 
 const PRESET_COLORS = [
   '#f4a261', '#e76f51', '#2a9d8f', '#264653', '#e9c46a',
   '#9b5de5', '#00bbf9', '#00f5d4', '#fee440', '#f15bb5',
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onAddFolder: () => void
+}
+
+export function Sidebar({ onAddFolder }: SidebarProps) {
   const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, loadMovies } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
@@ -105,9 +110,27 @@ export function Sidebar() {
     <aside className="w-64 glass border-r border-charcoal-700/50 flex flex-col">
       {/* Library Section */}
       <div className="p-4">
-        <h2 className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider mb-3">
-          Library
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">
+            Library
+          </h2>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onAddFolder}
+            className="w-6 h-6 rounded-md bg-charcoal-800 hover:bg-charcoal-700 flex items-center justify-center text-charcoal-400 hover:text-cream-200 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </motion.button>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="mb-3">
+          <SearchBar />
+        </div>
+        
         <nav className="space-y-1">
           {filters.map((filter) => (
             <motion.button

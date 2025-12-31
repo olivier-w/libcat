@@ -5,7 +5,6 @@ import { TitleBar } from './components/TitleBar'
 import { Sidebar } from './components/Sidebar'
 import { Gallery } from './components/Gallery'
 import { DetailsPanel } from './components/DetailsPanel'
-import { SearchBar } from './components/SearchBar'
 import { ScanModal } from './components/ScanModal'
 import { ProfileSelector } from './components/ProfileSelector'
 import { ToastContainer } from './components/Toast'
@@ -139,34 +138,11 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar onAddFolder={handleAddFolder} />
 
         {/* Center - Gallery */}
         <main className="flex-1 flex flex-col overflow-hidden">
           <Gallery />
-          
-          {/* Bottom Bar with Search and Actions */}
-          <div className="glass border-t border-charcoal-700/50 px-6 py-3 flex items-center justify-between">
-            <SearchBar />
-            
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAddFolder}
-                className="px-4 py-2 rounded-lg bg-charcoal-800 hover:bg-charcoal-700 text-cream-200 text-sm font-medium transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                Add Folder
-              </motion.button>
-              
-              <div className="px-4 py-2 rounded-lg border border-dashed border-charcoal-600 text-charcoal-400 text-sm">
-                Drop files here
-              </div>
-            </div>
-          </div>
         </main>
 
         {/* Right - Details Panel */}
