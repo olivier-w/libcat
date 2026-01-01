@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useToastStore } from '../stores/toastStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
 import { TMDBSearchModal } from './TMDBSearchModal'
@@ -216,6 +217,7 @@ function TagDropdownPortal({
 
 export function DetailsPanel() {
   const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState } = useLibraryStore()
+  const addToast = useToastStore((state) => state.addToast)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editYear, setEditYear] = useState('')
@@ -377,8 +379,13 @@ export function DetailsPanel() {
         clearSelection()
       }
       setShowDeleteModal(false)
-    } catch (error) {
+      addToast(`"${movie.title || 'Movie'}" has been removed from your library.`, 'success')
+    } catch (error: any) {
       console.error('Failed to delete:', error)
+      addToast(
+        error?.message || 'Failed to remove movie from library. Please try again.',
+        'error'
+      )
     } finally {
       setIsDeleting(false)
     }
@@ -847,6 +854,8 @@ export function DetailsPanel() {
               </>
             )}
           </div>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
@@ -856,8 +865,6 @@ export function DetailsPanel() {
         movieTitle={movie.title || undefined}
         isDeleting={isDeleting}
       />
-        </motion.div>
-      </AnimatePresence>
 
       {/* TMDB Search Modal */}
       <TMDBSearchModal
@@ -873,6 +880,7 @@ export function DetailsPanel() {
 // Bulk Actions Panel for multi-selection
 function BulkActionsPanel() {
   const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState, addTagToState } = useLibraryStore()
+  const addToast = useToastStore((state) => state.addToast)
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [bulkTagSearchQuery, setBulkTagSearchQuery] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -967,8 +975,16 @@ function BulkActionsPanel() {
       removeMoviesFromState(ids)
       clearSelection()
       setShowDeleteModal(false)
-    } catch (error) {
+      addToast(
+        `${selectedMovies.length} ${selectedMovies.length === 1 ? 'movie has' : 'movies have'} been removed from your library.`,
+        'success'
+      )
+    } catch (error: any) {
       console.error('Failed to bulk delete:', error)
+      addToast(
+        error?.message || 'Failed to remove movies from library. Please try again.',
+        'error'
+      )
     } finally {
       setIsDeleting(false)
     }

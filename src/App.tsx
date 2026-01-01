@@ -9,12 +9,7 @@ import { ScanModal } from './components/ScanModal'
 import { ProfileSelector } from './components/ProfileSelector'
 import { ToastContainer } from './components/Toast'
 import { SettingsModal } from './components/SettingsModal'
-
-interface Toast {
-  id: string
-  message: string
-  type?: 'success' | 'error' | 'info'
-}
+import { useToastStore } from './stores/toastStore'
 
 function App() {
   const { 
@@ -26,18 +21,9 @@ function App() {
     setScanProgress, 
     setIsScanning 
   } = useLibraryStore()
+  const addToast = useToastStore((state) => state.addToast)
   const [showScanModal, setShowScanModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [toasts, setToasts] = useState<Toast[]>([])
-
-  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    const id = Math.random().toString(36).substring(7)
-    setToasts((prev) => [...prev, { id, message, type }])
-  }
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
-  }
 
   useEffect(() => {
     if (activeProfile) {
@@ -164,7 +150,7 @@ function App() {
       </AnimatePresence>
 
       {/* Toast Notifications */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <ToastContainer />
     </div>
   )
 }
