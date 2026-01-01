@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie } from '../types'
+import { TagPill } from './TagPill'
 
 type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
 type SortDirection = 'asc' | 'desc'
@@ -198,29 +199,20 @@ export function ListView() {
               >
                 {/* Filename */}
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Tags dots */}
-                  {movie.tags && movie.tags.length > 0 && (
-                    <div className="flex gap-1 flex-shrink-0">
-                      {movie.tags.slice(0, 3).map((tag) => (
-                        <div
-                          key={tag.id}
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: tag.color }}
-                          title={tag.name}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className={`text-sm truncate ${
                       isSelected ? 'text-amber-400' : 'text-cream-100'
                     }`}>
                       {movie.title || getFileName(movie.file_path)}
                     </p>
-                    <p className="text-xs text-charcoal-500 truncate">
-                      {getFileName(movie.file_path)}
-                    </p>
+                    {/* Tags */}
+                    {movie.tags && movie.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {movie.tags.map((tag) => (
+                          <TagPill key={tag.id} tag={tag} size="sm" />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
