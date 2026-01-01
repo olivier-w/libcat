@@ -5,6 +5,7 @@ import { useLibraryStore } from '../stores/libraryStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
 import { TMDBSearchModal } from './TMDBSearchModal'
+import { DeleteConfirmationModal } from './DeleteConfirmationModal'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
 import type { Tag, TMDBCastMember, Movie } from '../types'
 
@@ -223,6 +224,8 @@ export function DetailsPanel() {
   const [tagSearchQuery, setTagSearchQuery] = useState('')
   const [showTMDBSearch, setShowTMDBSearch] = useState(false)
   const [isAutoMatching, setIsAutoMatching] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const tagSearchInputRef = useRef<HTMLInputElement>(null)
   const addTagButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -360,8 +363,12 @@ export function DetailsPanel() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to remove this movie from your library?')) return
+  const handleDelete = () => {
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
     try {
       await window.api.deleteMovie(movie.id)
       removeMovieFromState(movie.id)
@@ -369,8 +376,11 @@ export function DetailsPanel() {
       if (selectedMovie?.id === movie.id) {
         clearSelection()
       }
+      setShowDeleteModal(false)
     } catch (error) {
       console.error('Failed to delete:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -837,6 +847,15 @@ export function DetailsPanel() {
               </>
             )}
           </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => !isDeleting && setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        movieTitle={movie.title || undefined}
+        isDeleting={isDeleting}
+      />
         </motion.div>
       </AnimatePresence>
 
@@ -856,6 +875,8 @@ function BulkActionsPanel() {
   const { selectedMovies, tags, loadMovies, clearSelection, updateMovieInState, removeMoviesFromState, addTagToState } = useLibraryStore()
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [bulkTagSearchQuery, setBulkTagSearchQuery] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const bulkTagSearchInputRef = useRef<HTMLInputElement>(null)
   const bulkAddTagButtonRef = useRef<HTMLButtonElement>(null)
   
@@ -932,8 +953,12 @@ function BulkActionsPanel() {
     }
   }
 
-  const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to remove ${selectedMovies.length} movies from your library?`)) return
+  const handleBulkDelete = () => {
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmBulkDelete = async () => {
+    setIsDeleting(true)
     try {
       const ids = selectedMovies.map(m => m.id)
       for (const id of ids) {
@@ -941,11 +966,13 @@ function BulkActionsPanel() {
       }
       removeMoviesFromState(ids)
       clearSelection()
+      setShowDeleteModal(false)
     } catch (error) {
       console.error('Failed to bulk delete:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
-
   // Find common tags among selected movies
   const getCommonTags = () => {
     if (selectedMovies.length === 0) return []
@@ -1123,6 +1150,15 @@ function BulkActionsPanel() {
           </button>
         </div>
       </motion.div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => !isDeleting && setShowDeleteModal(false)}
+        onConfirm={handleConfirmBulkDelete}
+        movieCount={selectedMovies.length}
+        isDeleting={isDeleting}
+      />
     </aside>
   )
 }
