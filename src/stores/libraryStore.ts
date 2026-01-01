@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Movie, Tag, FilterType, ScanProgress, ViewMode } from '../types'
+import type { Movie, Tag, FilterType, ScanProgress, ViewMode, SortColumn, SortDirection } from '../types'
 
 // Simple debounce utility
 function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
@@ -36,6 +36,8 @@ interface LibraryState {
   isScanning: boolean
   scanProgress: ScanProgress | null
   viewMode: ViewMode
+  sortColumn: SortColumn
+  sortDirection: SortDirection
   
   // Profile actions
   setActiveProfile: (profile: Profile | null) => void
@@ -54,6 +56,8 @@ interface LibraryState {
   setIsScanning: (isScanning: boolean) => void
   setScanProgress: (progress: ScanProgress | null) => void
   setViewMode: (mode: ViewMode) => void
+  setSortColumn: (column: SortColumn) => void
+  setSortDirection: (direction: SortDirection) => void
   
   // Data operations
   loadMovies: () => Promise<void>
@@ -83,6 +87,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   isScanning: false,
   scanProgress: null,
   viewMode: 'grid',
+  sortColumn: 'created_at',
+  sortDirection: 'desc',
   
   // Profile actions
   setActiveProfile: (profile) => set({ activeProfile: profile }),
@@ -194,6 +200,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setIsScanning: (isScanning) => set({ isScanning }),
   setScanProgress: (progress) => set({ scanProgress: progress }),
   setViewMode: (mode) => set({ viewMode: mode }),
+  setSortColumn: (column) => set({ sortColumn: column }),
+  setSortDirection: (direction) => set({ sortDirection: direction }),
   
   // Data operations
   loadMovies: async () => {
@@ -284,13 +292,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         movie.tags?.some((tag) => tag.id === activeFilter)
       )
     }
-    
-    // Sort by date added (newest first) - must match Gallery display order
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime()
-      const dateB = new Date(b.created_at).getTime()
-      return dateB - dateA
-    })
     
     // Clean up invalid selections (movies that no longer exist or don't match filter)
     const movieIds = new Set(movies.map(m => m.id))

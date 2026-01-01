@@ -42,6 +42,9 @@ export interface TMDBSearchResult {
 
 export type ViewMode = 'grid' | 'list'
 
+export type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
+export type SortDirection = 'asc' | 'desc'
+
 export interface Tag {
   id: number
   name: string
