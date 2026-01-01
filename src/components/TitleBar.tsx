@@ -9,7 +9,7 @@ export function TitleBar() {
   }
 
   return (
-    <div className="h-10 glass flex items-center justify-between px-4 titlebar-drag border-b border-charcoal-700/50">
+    <div className="h-10 glass flex items-center justify-between pl-4 pr-0 titlebar-drag border-b border-charcoal-700/50">
       {/* App Title */}
       <div className="flex items-center gap-3 titlebar-no-drag">
         <div className="w-6 h-6 rounded-lg gradient-accent flex items-center justify-center">
