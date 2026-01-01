@@ -1,6 +1,7 @@
 export { TitleBar } from './TitleBar'
 export { Sidebar } from './Sidebar'
 export { Gallery } from './Gallery'
+export { VirtualizedGallery } from './VirtualizedGallery'
 export { ListView } from './ListView'
 export { MovieCard } from './MovieCard'
 export { DetailsPanel } from './DetailsPanel'
