@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Movies
   getMovies: () => ipcRenderer.invoke('movies:getAll'),
+  getMoviesWithTags: () => ipcRenderer.invoke('movies:getAllWithTags'),
   getMovieById: (id: number) => ipcRenderer.invoke('movies:getById', id),
   updateMovie: (id: number, data: any) => ipcRenderer.invoke('movies:update', id, data),
   deleteMovie: (id: number) => ipcRenderer.invoke('movies:delete', id),
@@ -97,6 +98,7 @@ export type Api = {
   
   // Movies
   getMovies: () => Promise<any[]>
+  getMoviesWithTags: () => Promise<any[]>
   getMovieById: (id: number) => Promise<any>
   updateMovie: (id: number, data: any) => Promise<any>
   deleteMovie: (id: number) => Promise<void>

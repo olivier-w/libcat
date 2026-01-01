@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { FilterType } from '../types'
@@ -24,6 +24,29 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
   
   const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
 
+  // Memoize filter counts to avoid recalculating on every render
+  const filterCounts = useMemo(() => ({
+    all: movies.length,
+    untagged: movies.filter((m) => !m.tags || m.tags.length === 0).length,
+    watched: movies.filter((m) => m.watched).length,
+    favorites: movies.filter((m) => m.favorite).length,
+  }), [movies])
+
+  // Memoize tag counts - creates a Map for O(1) lookup per tag
+  const tagCounts = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (const movie of movies) {
+      if (movie.tags) {
+        for (const tag of movie.tags) {
+          counts.set(tag.id, (counts.get(tag.id) || 0) + 1)
+        }
+      }
+    }
+    return counts
+  }, [movies])
+
+  const getTagCount = (tagId: number) => tagCounts.get(tagId) || 0
+
   const filters: { id: FilterType; label: string; icon: JSX.Element; count: number }[] = [
     {
       id: 'all',
@@ -33,7 +56,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
         </svg>
       ),
-      count: movies.length,
+      count: filterCounts.all,
     },
     {
       id: 'untagged',
@@ -43,7 +66,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
         </svg>
       ),
-      count: movies.filter((m) => !m.tags || m.tags.length === 0).length,
+      count: filterCounts.untagged,
     },
     {
       id: 'watched',
@@ -54,7 +77,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
       ),
-      count: movies.filter((m) => m.watched).length,
+      count: filterCounts.watched,
     },
     {
       id: 'favorites',
@@ -64,7 +87,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       ),
-      count: movies.filter((m) => m.favorite).length,
+      count: filterCounts.favorites,
     },
   ]
 
@@ -101,10 +124,6 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
     } catch (error) {
       console.error('Failed to delete tag:', error)
     }
-  }
-
-  const getTagCount = (tagId: number) => {
-    return movies.filter((m) => m.tags?.some((t) => t.id === tagId)).length
   }
 
   return (

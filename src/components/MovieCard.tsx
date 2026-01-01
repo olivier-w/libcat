@@ -11,8 +11,8 @@ interface MovieCardProps {
 }
 
 function MovieCardComponent({ movie, index, shouldLoadImage, onObserve }: MovieCardProps) {
-  const { selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
-  const isSelected = selectedMovies.some(m => m.id === movie.id)
+  const { selectedIds, toggleMovieSelection, updateMovieInState } = useLibraryStore()
+  const isSelected = selectedIds.has(movie.id)  // O(1) lookup
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const handleDoubleClick = () => {

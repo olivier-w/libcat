@@ -476,15 +476,15 @@ export function DetailsPanel() {
             )}
             
             {/* Play Button on Hover */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <button
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div
                 onClick={() => window.api.playVideo(movie.file_path)}
-                className="w-16 h-16 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+                className="w-14 h-14 rounded-full bg-amber-400/90 flex items-center justify-center shadow-xl hover:scale-110 transition-transform pointer-events-auto cursor-pointer"
               >
-                <svg className="w-7 h-7 text-charcoal-900 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-6 h-6 text-charcoal-900" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                 </svg>
-              </button>
+              </div>
             </div>
           </div>
 

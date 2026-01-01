@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import type { Movie, Tag, FilterType, ScanProgress, ViewMode } from '../types'
 
+// Simple debounce utility
+function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  return ((...args: unknown[]) => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
+
 export interface Profile {
   id: string
   name: string
@@ -20,6 +29,7 @@ interface LibraryState {
   // Selection & UI state
   selectedMovie: Movie | null
   selectedMovies: Movie[]
+  selectedIds: Set<number>  // O(1) lookup for selection state
   lastSelectedIndex: number | null
   activeFilter: FilterType
   searchQuery: string
@@ -66,6 +76,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   filteredMovies: [],
   selectedMovie: null,
   selectedMovies: [],
+  selectedIds: new Set(),
   lastSelectedIndex: null,
   activeFilter: 'all',
   searchQuery: '',
@@ -87,6 +98,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         filteredMovies: [],
         selectedMovie: null,
         selectedMovies: [],
+        selectedIds: new Set(),
         lastSelectedIndex: null,
         activeFilter: 'all',
         searchQuery: '',
@@ -100,11 +112,20 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setMovies: (movies) => set({ movies }),
   setTags: (tags) => set({ tags }),
   setFilteredMovies: (movies) => set({ filteredMovies: movies }),
-  setSelectedMovie: (movie) => set({ selectedMovie: movie, selectedMovies: movie ? [movie] : [], lastSelectedIndex: null }),
-  setSelectedMovies: (movies) => set({ selectedMovies: movies, selectedMovie: movies.length === 1 ? movies[0] : null }),
+  setSelectedMovie: (movie) => set({ 
+    selectedMovie: movie, 
+    selectedMovies: movie ? [movie] : [], 
+    selectedIds: movie ? new Set([movie.id]) : new Set(),
+    lastSelectedIndex: null 
+  }),
+  setSelectedMovies: (movies) => set({ 
+    selectedMovies: movies, 
+    selectedIds: new Set(movies.map(m => m.id)),
+    selectedMovie: movies.length === 1 ? movies[0] : null 
+  }),
   
   toggleMovieSelection: (movie, index, shiftKey, ctrlKey, displayedMovies) => {
-    const { selectedMovies, lastSelectedIndex, filteredMovies } = get()
+    const { selectedIds, lastSelectedIndex, filteredMovies } = get()
     // Use the displayed movies array if provided (for custom sorting like in ListView)
     const moviesArray = displayedMovies ?? filteredMovies
     
@@ -115,39 +136,61 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const rangeMovies = moviesArray.slice(start, end + 1)
       set({ 
         selectedMovies: rangeMovies, 
+        selectedIds: new Set(rangeMovies.map(m => m.id)),
         selectedMovie: rangeMovies.length === 1 ? rangeMovies[0] : null 
       })
     } else if (ctrlKey) {
-      // Ctrl+click: toggle individual selection
-      const isSelected = selectedMovies.some(m => m.id === movie.id)
-      const newSelection = isSelected
-        ? selectedMovies.filter(m => m.id !== movie.id)
-        : [...selectedMovies, movie]
+      // Ctrl+click: toggle individual selection - use Set for O(1) lookup
+      const isSelected = selectedIds.has(movie.id)
+      const newIds = new Set(selectedIds)
+      let newSelection: Movie[]
+      
+      if (isSelected) {
+        newIds.delete(movie.id)
+        newSelection = get().selectedMovies.filter(m => m.id !== movie.id)
+      } else {
+        newIds.add(movie.id)
+        newSelection = [...get().selectedMovies, movie]
+      }
+      
       set({ 
-        selectedMovies: newSelection, 
+        selectedMovies: newSelection,
+        selectedIds: newIds,
         selectedMovie: newSelection.length === 1 ? newSelection[0] : null,
         lastSelectedIndex: index 
       })
     } else {
       // Normal click: single selection
       set({ 
-        selectedMovies: [movie], 
+        selectedMovies: [movie],
+        selectedIds: new Set([movie.id]),
         selectedMovie: movie, 
         lastSelectedIndex: index 
       })
     }
   },
   
-  clearSelection: () => set({ selectedMovies: [], selectedMovie: null, lastSelectedIndex: null }),
+  clearSelection: () => set({ selectedMovies: [], selectedIds: new Set(), selectedMovie: null, lastSelectedIndex: null }),
   
   setActiveFilter: (filter) => {
     set({ activeFilter: filter })
     get().applyFilter()
   },
-  setSearchQuery: (query) => {
-    set({ searchQuery: query })
-    get().applyFilter()
-  },
+  setSearchQuery: (() => {
+    // Create debounced filter once per store instance
+    let debouncedApplyFilter: (() => void) | null = null
+    
+    return (query: string) => {
+      // Update query immediately for responsive UI
+      set({ searchQuery: query })
+      
+      // Debounce the filter application (200ms delay)
+      if (!debouncedApplyFilter) {
+        debouncedApplyFilter = debounce(() => get().applyFilter(), 200)
+      }
+      debouncedApplyFilter()
+    }
+  })(),
   setIsScanning: (isScanning) => set({ isScanning }),
   setScanProgress: (progress) => set({ scanProgress: progress }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -155,29 +198,24 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   // Data operations
   loadMovies: async () => {
     try {
-      const { selectedMovie, selectedMovies } = get()
-      const movies = await window.api.getMovies()
-      // Load tags for each movie
-      const moviesWithTags = await Promise.all(
-        movies.map(async (movie: Movie) => ({
-          ...movie,
-          tags: await window.api.getTagsForMovie(movie.id),
-        }))
-      )
+      const { selectedMovie, selectedIds } = get()
+      // Use batch method to get all movies with tags in a single query
+      const moviesWithTags = await window.api.getMoviesWithTags()
       
       // Update selectedMovie and selectedMovies to point to the updated movie objects
       const updatedSelectedMovie = selectedMovie
-        ? moviesWithTags.find(m => m.id === selectedMovie.id) || null
+        ? moviesWithTags.find((m: Movie) => m.id === selectedMovie.id) || null
         : null
       
-      const updatedSelectedMovies = selectedMovies
-        .map(movie => moviesWithTags.find(m => m.id === movie.id))
-        .filter((m): m is Movie => m !== undefined)
+      // Filter selectedMovies using the Set for efficiency
+      const updatedSelectedMovies = moviesWithTags.filter((m: Movie) => selectedIds.has(m.id))
+      const updatedSelectedIds = new Set(updatedSelectedMovies.map((m: Movie) => m.id))
       
       set({ 
         movies: moviesWithTags,
         selectedMovie: updatedSelectedMovie,
         selectedMovies: updatedSelectedMovies,
+        selectedIds: updatedSelectedIds,
       })
       get().applyFilter()
     } catch (error) {
@@ -261,6 +299,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     const validSelectedMovies = selectedMovies.filter(m => 
       movieIds.has(m.id) && filteredIds.has(m.id)
     )
+    const validSelectedIds = new Set(validSelectedMovies.map(m => m.id))
     const validSelectedMovie = selectedMovie && movieIds.has(selectedMovie.id) && filteredIds.has(selectedMovie.id)
       ? selectedMovie
       : null
@@ -268,6 +307,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ 
       filteredMovies: filtered,
       selectedMovies: validSelectedMovies,
+      selectedIds: validSelectedIds,
       selectedMovie: validSelectedMovie,
       lastSelectedIndex: validSelectedMovies.length === 0 ? null : get().lastSelectedIndex,
     })
@@ -290,11 +330,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set((state) => {
       const newMovies = state.movies.filter((movie) => movie.id !== id)
       const newSelectedMovies = state.selectedMovies.filter((movie) => movie.id !== id)
+      const newSelectedIds = new Set(state.selectedIds)
+      newSelectedIds.delete(id)
       const newSelectedMovie = state.selectedMovie?.id === id ? null : state.selectedMovie
       
       return {
         movies: newMovies,
         selectedMovies: newSelectedMovies,
+        selectedIds: newSelectedIds,
         selectedMovie: newSelectedMovie,
         lastSelectedIndex: newSelectedMovies.length === 0 ? null : state.lastSelectedIndex,
       }
@@ -307,6 +350,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const idSet = new Set(ids)
       const newMovies = state.movies.filter((movie) => !idSet.has(movie.id))
       const newSelectedMovies = state.selectedMovies.filter((movie) => !idSet.has(movie.id))
+      const newSelectedIds = new Set([...state.selectedIds].filter(id => !idSet.has(id)))
       const newSelectedMovie = state.selectedMovie && !idSet.has(state.selectedMovie.id) 
         ? state.selectedMovie 
         : null
@@ -314,6 +358,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return {
         movies: newMovies,
         selectedMovies: newSelectedMovies,
+        selectedIds: newSelectedIds,
         selectedMovie: newSelectedMovie,
         lastSelectedIndex: newSelectedMovies.length === 0 ? null : state.lastSelectedIndex,
       }
