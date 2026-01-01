@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useRef, type ReactElement } from 'react
 import { List } from 'react-window'
 import { useLibraryStore } from '../stores/libraryStore'
 import type { Movie, Tag } from '../types'
-import { TagPill } from './TagPill'
 
 type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
 type SortDirection = 'asc' | 'desc'
@@ -53,22 +52,35 @@ function Row({
         isSelected ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''
       }`}
     >
-      {/* Filename */}
+      {/* Filename + Tags */}
       <div className="flex items-center gap-3 min-w-0">
-        <div className="min-w-0 flex-1">
-          <p className={`text-sm truncate ${
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <p className={`text-sm truncate flex-shrink min-w-0 ${
             isSelected ? 'text-amber-400' : 'text-cream-100'
           }`}>
             {movie.title || getFileName(movie.file_path)}
           </p>
-          {/* Tags - show first 3 only for consistent row height */}
+          {/* Tags - inline with title */}
           {movie.tags && movie.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-0.5 overflow-hidden h-5">
-              {movie.tags.slice(0, 3).map((tag: Tag) => (
-                <TagPill key={tag.id} tag={tag} size="sm" />
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {movie.tags.slice(0, 2).map((tag: Tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                  style={{ 
+                    backgroundColor: `${tag.color}20`,
+                    color: tag.color,
+                  }}
+                >
+                  <span
+                    className="w-1 h-1 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                </span>
               ))}
-              {movie.tags.length > 3 && (
-                <span className="text-xs text-charcoal-500">+{movie.tags.length - 3}</span>
+              {movie.tags.length > 2 && (
+                <span className="text-[10px] text-charcoal-500 font-medium">+{movie.tags.length - 2}</span>
               )}
             </div>
           )}
