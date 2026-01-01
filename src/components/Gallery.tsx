@@ -3,12 +3,19 @@ import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { MovieCard } from './MovieCard'
 import { ListView } from './ListView'
+import { VirtualizedGallery } from './VirtualizedGallery'
 import { useVisibleItems } from '../hooks/useVisibleItems'
+
+// Threshold for switching to virtualized grid (preserves smooth animations for smaller libraries)
+const VIRTUALIZATION_THRESHOLD = 1000
 
 export function Gallery() {
   const { filteredMovies, activeFilter, tags, viewMode, setViewMode } = useLibraryStore()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const { observe, isVisible } = useVisibleItems(scrollContainerRef)
+  
+  // Only use IntersectionObserver for non-virtualized mode
+  const useVirtualization = filteredMovies.length > VIRTUALIZATION_THRESHOLD
+  const { observe, isVisible } = useVisibleItems(useVirtualization ? { current: null } : scrollContainerRef)
 
   // filteredMovies is already sorted by date added (newest first) in the store
 
@@ -82,35 +89,37 @@ export function Gallery() {
       {/* Content */}
       {viewMode === 'list' ? (
         <ListView />
+      ) : filteredMovies.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+          <div className="w-20 h-20 rounded-full bg-charcoal-800/50 flex items-center justify-center mb-4">
+            <svg className="w-10 h-10 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-cream-200 mb-2">No movies found</h3>
+          <p className="text-sm text-charcoal-400 max-w-xs">
+            {activeFilter === 'all' 
+              ? 'Add a folder or drop some video files to get started.'
+              : 'No movies match the current filter.'}
+          </p>
+        </div>
+      ) : useVirtualization ? (
+        // Virtualized grid for large collections (1000+ movies)
+        <VirtualizedGallery movies={filteredMovies} />
       ) : (
+        // Regular grid with animations for smaller collections
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
-          {filteredMovies.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
-              {filteredMovies.map((movie, index) => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  index={index}
-                  shouldLoadImage={isVisible(movie.id)}
-                  onObserve={createObserveCallback(movie.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 rounded-full bg-charcoal-800/50 flex items-center justify-center mb-4">
-                <svg className="w-10 h-10 text-charcoal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-cream-200 mb-2">No movies found</h3>
-              <p className="text-sm text-charcoal-400 max-w-xs">
-                {activeFilter === 'all' 
-                  ? 'Add a folder or drop some video files to get started.'
-                  : 'No movies match the current filter.'}
-              </p>
-            </div>
-          )}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
+            {filteredMovies.map((movie, index) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                index={index}
+                shouldLoadImage={isVisible(movie.id)}
+                onObserve={createObserveCallback(movie.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
