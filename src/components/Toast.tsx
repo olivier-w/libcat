@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
+import { useToastStore } from '../stores/toastStore'
 
 interface ToastProps {
   message: string
@@ -9,13 +10,18 @@ interface ToastProps {
 }
 
 export function Toast({ message, type = 'success', onClose, duration = 3000 }: ToastProps) {
+  // Error toasts don't auto-dismiss - they require manual dismissal
+  const autoDismissDuration = type === 'error' ? undefined : duration
+
   useEffect(() => {
+    if (autoDismissDuration === undefined) return
+
     const timer = setTimeout(() => {
       onClose()
-    }, duration)
+    }, autoDismissDuration)
 
     return () => clearTimeout(timer)
-  }, [duration, onClose])
+  }, [autoDismissDuration, onClose])
 
   const bgColor = {
     success: 'bg-green-500/20 border-green-400/30',
@@ -72,12 +78,9 @@ export function Toast({ message, type = 'success', onClose, duration = 3000 }: T
   )
 }
 
-interface ToastContainerProps {
-  toasts: Array<{ id: string; message: string; type?: 'success' | 'error' | 'info' }>
-  onRemove: (id: string) => void
-}
+export function ToastContainer() {
+  const { toasts, removeToast } = useToastStore()
 
-export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
       <AnimatePresence>
@@ -86,7 +89,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
             key={toast.id}
             message={toast.message}
             type={toast.type}
-            onClose={() => onRemove(toast.id)}
+            onClose={() => removeToast(toast.id)}
           />
         ))}
       </AnimatePresence>
