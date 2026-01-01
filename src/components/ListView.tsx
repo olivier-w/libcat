@@ -1,10 +1,7 @@
-import { useState, useMemo, useCallback, useRef, type ReactElement } from 'react'
+import { useMemo, useCallback, useRef, type ReactElement } from 'react'
 import { List } from 'react-window'
 import { useLibraryStore } from '../stores/libraryStore'
-import type { Movie, Tag } from '../types'
-
-type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
-type SortDirection = 'asc' | 'desc'
+import type { Movie, Tag, SortColumn } from '../types'
 
 // Row height - fixed for virtualization performance
 const ROW_HEIGHT = 56
@@ -131,54 +128,30 @@ function Row({
   )
 }
 
-export function ListView() {
-  const { filteredMovies, selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
-  const [sortColumn, setSortColumn] = useState<SortColumn>('created_at')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+interface ListViewProps {
+  sortedMovies: Movie[]
+}
+
+export function ListView({ sortedMovies }: ListViewProps) {
+  const { 
+    selectedMovies, 
+    toggleMovieSelection, 
+    updateMovieInState,
+    sortColumn,
+    sortDirection,
+    setSortColumn,
+    setSortDirection,
+  } = useLibraryStore()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerHeight, setContainerHeight] = useState(600)
+  const containerHeight = useRef(600)
 
   // Create a Set of selected IDs for O(1) lookup
   const selectedIds = useMemo(() => new Set(selectedMovies.map(m => m.id)), [selectedMovies])
 
-  // Sort movies
-  const sortedMovies = useMemo(() => {
-    const sorted = [...filteredMovies].sort((a, b) => {
-      let aVal: string | number
-      let bVal: string | number
-
-      switch (sortColumn) {
-        case 'title':
-          aVal = (a.title || a.file_path).toLowerCase()
-          bVal = (b.title || b.file_path).toLowerCase()
-          break
-        case 'created_at':
-          aVal = new Date(a.created_at).getTime()
-          bVal = new Date(b.created_at).getTime()
-          break
-        case 'file_size':
-          aVal = a.file_size || 0
-          bVal = b.file_size || 0
-          break
-        case 'duration':
-          aVal = a.duration || 0
-          bVal = b.duration || 0
-          break
-        default:
-          return 0
-      }
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [filteredMovies, sortColumn, sortDirection])
-
   // Update container height on mount and resize
   const updateHeight = useCallback(() => {
     if (containerRef.current) {
-      setContainerHeight(containerRef.current.clientHeight)
+      containerHeight.current = containerRef.current.clientHeight
     }
   }, [])
 
@@ -192,14 +165,14 @@ export function ListView() {
     return () => observer.disconnect()
   }, [updateHeight])
 
-  const handleSort = (column: SortColumn) => {
+  const handleSort = useCallback((column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortColumn(column)
       setSortDirection(column === 'created_at' ? 'desc' : 'asc')
     }
-  }
+  }, [sortColumn, sortDirection, setSortColumn, setSortDirection])
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) {
@@ -332,7 +305,7 @@ export function ListView() {
             rowHeight={ROW_HEIGHT}
             rowComponent={Row}
             rowProps={rowProps}
-            defaultHeight={containerHeight}
+            defaultHeight={containerHeight.current}
             overscanCount={5}
           />
         ) : (
