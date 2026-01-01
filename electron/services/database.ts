@@ -119,6 +119,58 @@ export class DatabaseService {
     return this.db.prepare('SELECT * FROM movies ORDER BY title ASC').all() as Movie[]
   }
 
+  // Get all movies with their tags in a single query (avoids N+1 problem)
+  getAllMoviesWithTags(): (Movie & { tags: Tag[] })[] {
+    // Fetch all movies
+    const movies = this.db.prepare('SELECT * FROM movies ORDER BY title ASC').all() as Movie[]
+    
+    if (movies.length === 0) {
+      return []
+    }
+
+    // Fetch all movie-tag associations with tag data in a single query
+    // Use IFNULL for created_at to handle databases where the column might not exist or be null
+    let movieTags: { movie_id: number; id: number; name: string; color: string; created_at: string | null }[]
+    try {
+      movieTags = this.db.prepare(`
+        SELECT mt.movie_id, t.id, t.name, t.color, t.created_at
+        FROM movie_tags mt
+        INNER JOIN tags t ON t.id = mt.tag_id
+        ORDER BY t.name ASC
+      `).all() as { movie_id: number; id: number; name: string; color: string; created_at: string | null }[]
+    } catch (e: unknown) {
+      // Fallback if created_at column doesn't exist
+      if (e instanceof Error && e.message.includes('no such column')) {
+        movieTags = this.db.prepare(`
+          SELECT mt.movie_id, t.id, t.name, t.color, NULL as created_at
+          FROM movie_tags mt
+          INNER JOIN tags t ON t.id = mt.tag_id
+          ORDER BY t.name ASC
+        `).all() as { movie_id: number; id: number; name: string; color: string; created_at: null }[]
+      } else {
+        throw e
+      }
+    }
+
+    // Group tags by movie_id for O(1) lookup
+    const tagsByMovieId = new Map<number, Tag[]>()
+    for (const row of movieTags) {
+      const tag: Tag = { id: row.id, name: row.name, color: row.color, created_at: row.created_at || '' }
+      const existing = tagsByMovieId.get(row.movie_id)
+      if (existing) {
+        existing.push(tag)
+      } else {
+        tagsByMovieId.set(row.movie_id, [tag])
+      }
+    }
+
+    // Combine movies with their tags
+    return movies.map(movie => ({
+      ...movie,
+      tags: tagsByMovieId.get(movie.id) || []
+    }))
+  }
+
   getMovieById(id: number): Movie | undefined {
     return this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as Movie | undefined
   }

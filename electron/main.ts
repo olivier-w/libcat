@@ -197,6 +197,12 @@ function registerIpcHandlers() {
     return db.getAllMovies()
   })
 
+  // Get all movies with tags in a single query (performance optimization)
+  ipcMain.handle('movies:getAllWithTags', async () => {
+    if (!db) throw new Error('No profile selected')
+    return db.getAllMoviesWithTags()
+  })
+
   ipcMain.handle('movies:getById', async (_, id: number) => {
     if (!db) throw new Error('No profile selected')
     return db.getMovieById(id)

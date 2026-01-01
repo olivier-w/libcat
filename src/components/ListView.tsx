@@ -1,22 +1,139 @@
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useMemo, useCallback, useRef, type ReactElement } from 'react'
+import { List } from 'react-window'
 import { useLibraryStore } from '../stores/libraryStore'
-import type { Movie } from '../types'
+import type { Movie, Tag } from '../types'
 import { TagPill } from './TagPill'
 
 type SortColumn = 'title' | 'created_at' | 'file_size' | 'duration'
 type SortDirection = 'asc' | 'desc'
 
+// Row height - fixed for virtualization performance
+const ROW_HEIGHT = 56
+
+// Props passed to each row via rowProps
+interface RowData {
+  movies: Movie[]
+  selectedIds: Set<number>
+  onSelect: (movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean) => void
+  onDoubleClick: (movie: Movie) => void
+  onFavoriteToggle: (e: React.MouseEvent, movie: Movie) => void
+  formatDate: (date: string) => string
+  formatFileSize: (bytes: number | null) => string
+  formatDuration: (seconds: number | null) => string
+  getFileName: (path: string) => string
+}
+
+// Row component - receives index, style, and all rowProps flattened
+function Row({ 
+  index, 
+  style,
+  movies,
+  selectedIds,
+  onSelect,
+  onDoubleClick,
+  onFavoriteToggle,
+  formatDate,
+  formatFileSize,
+  formatDuration,
+  getFileName,
+}: {
+  index: number
+  style: React.CSSProperties
+  ariaAttributes: Record<string, unknown>
+} & RowData): ReactElement {
+  const movie = movies[index]
+  const isSelected = selectedIds.has(movie.id)
+
+  return (
+    <div
+      style={style}
+      onClick={(e) => onSelect(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)}
+      onDoubleClick={() => onDoubleClick(movie)}
+      className={`movie-list-item grid grid-cols-[1fr,120px,100px,100px,80px] gap-4 px-4 border-b border-charcoal-800/50 cursor-pointer transition-colors hover:bg-charcoal-800/30 ${
+        isSelected ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''
+      }`}
+    >
+      {/* Filename */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm truncate ${
+            isSelected ? 'text-amber-400' : 'text-cream-100'
+          }`}>
+            {movie.title || getFileName(movie.file_path)}
+          </p>
+          {/* Tags - show first 3 only for consistent row height */}
+          {movie.tags && movie.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5 overflow-hidden h-5">
+              {movie.tags.slice(0, 3).map((tag: Tag) => (
+                <TagPill key={tag.id} tag={tag} size="sm" />
+              ))}
+              {movie.tags.length > 3 && (
+                <span className="text-xs text-charcoal-500">+{movie.tags.length - 3}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Created date */}
+      <div className="flex items-center text-sm text-charcoal-300">
+        {formatDate(movie.created_at)}
+      </div>
+
+      {/* File size */}
+      <div className="flex items-center text-sm text-charcoal-300">
+        {formatFileSize(movie.file_size)}
+      </div>
+
+      {/* Duration */}
+      <div className="flex items-center text-sm text-charcoal-300 font-mono">
+        {formatDuration(movie.duration)}
+      </div>
+
+      {/* Favorite */}
+      <div className="flex items-center justify-center">
+        <button
+          onClick={(e) => onFavoriteToggle(e, movie)}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:scale-110 active:scale-90 ${
+            movie.favorite
+              ? 'text-red-400 hover:text-red-300'
+              : 'text-charcoal-600 hover:text-charcoal-400'
+          }`}
+        >
+          <svg
+            className="w-4 h-4"
+            fill={movie.favorite ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function ListView() {
   const { filteredMovies, selectedMovies, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(600)
+
+  // Create a Set of selected IDs for O(1) lookup
+  const selectedIds = useMemo(() => new Set(selectedMovies.map(m => m.id)), [selectedMovies])
 
   // Sort movies
   const sortedMovies = useMemo(() => {
     const sorted = [...filteredMovies].sort((a, b) => {
-      let aVal: any
-      let bVal: any
+      let aVal: string | number
+      let bVal: string | number
 
       switch (sortColumn) {
         case 'title':
@@ -46,6 +163,23 @@ export function ListView() {
     return sorted
   }, [filteredMovies, sortColumn, sortDirection])
 
+  // Update container height on mount and resize
+  const updateHeight = useCallback(() => {
+    if (containerRef.current) {
+      setContainerHeight(containerRef.current.clientHeight)
+    }
+  }, [])
+
+  // Set up resize observer
+  useMemo(() => {
+    if (typeof window === 'undefined') return
+    const observer = new ResizeObserver(updateHeight)
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    return () => observer.disconnect()
+  }, [updateHeight])
+
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -74,7 +208,7 @@ export function ListView() {
     )
   }
 
-  const formatFileSize = (bytes: number | null): string => {
+  const formatFileSize = useCallback((bytes: number | null): string => {
     if (!bytes) return '-'
     const units = ['B', 'KB', 'MB', 'GB']
     let size = bytes
@@ -84,9 +218,9 @@ export function ListView() {
       unitIndex++
     }
     return `${size.toFixed(1)} ${units[unitIndex]}`
-  }
+  }, [])
 
-  const formatDuration = (seconds: number | null): string => {
+  const formatDuration = useCallback((seconds: number | null): string => {
     if (!seconds) return '-'
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
@@ -96,27 +230,27 @@ export function ListView() {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
     return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
+  }, [])
 
-  const formatDate = (dateString: string): string => {
+  const formatDate = useCallback((dateString: string): string => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     })
-  }
+  }, [])
 
-  const getFileName = (filePath: string): string => {
+  const getFileName = useCallback((filePath: string): string => {
     const parts = filePath.split(/[/\\]/)
     return parts[parts.length - 1]
-  }
+  }, [])
 
-  const handleDoubleClick = (movie: Movie) => {
+  const handleDoubleClick = useCallback((movie: Movie) => {
     window.api.playVideo(movie.file_path)
-  }
+  }, [])
 
-  const handleFavoriteToggle = async (e: React.MouseEvent, movie: Movie) => {
+  const handleFavoriteToggle = useCallback(async (e: React.MouseEvent, movie: Movie) => {
     e.stopPropagation()
     try {
       await window.api.updateMovie(movie.id, { favorite: !movie.favorite })
@@ -124,23 +258,24 @@ export function ListView() {
     } catch (error) {
       console.error('Failed to toggle favorite:', error)
     }
-  }
+  }, [updateMovieInState])
 
-  // Disable animation stagger for large lists to improve performance
-  const shouldStagger = sortedMovies.length <= 100
-  
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: shouldStagger ? 0.02 : 0 },
-    },
-  }
+  const handleSelect = useCallback((movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean) => {
+    toggleMovieSelection(movie, index, shiftKey, ctrlKey, sortedMovies)
+  }, [toggleMovieSelection, sortedMovies])
 
-  const item = {
-    hidden: { opacity: 0, x: -10 },
-    show: { opacity: 1, x: 0 },
-  }
+  // Item data for react-window - memoized to prevent unnecessary re-renders
+  const rowProps: RowData = useMemo(() => ({
+    movies: sortedMovies,
+    selectedIds,
+    onSelect: handleSelect,
+    onDoubleClick: handleDoubleClick,
+    onFavoriteToggle: handleFavoriteToggle,
+    formatDate,
+    formatFileSize,
+    formatDuration,
+    getFileName,
+  }), [sortedMovies, selectedIds, handleSelect, handleDoubleClick, handleFavoriteToggle, formatDate, formatFileSize, formatDuration, getFileName])
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -177,90 +312,17 @@ export function ListView() {
         <div className="text-center">Fav</div>
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Virtualized List */}
+      <div ref={containerRef} className="flex-1 overflow-hidden">
         {sortedMovies.length > 0 ? (
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-          >
-            {sortedMovies.map((movie, index) => {
-              const isSelected = selectedMovies.some(m => m.id === movie.id)
-              return (
-              <motion.div
-                key={movie.id}
-                variants={item}
-                onClick={(e) => toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey, sortedMovies)}
-                onDoubleClick={() => handleDoubleClick(movie)}
-                className={`movie-list-item grid grid-cols-[1fr,120px,100px,100px,80px] gap-4 px-4 py-3 border-b border-charcoal-800/50 cursor-pointer transition-colors hover:bg-charcoal-800/30 ${
-                  isSelected ? 'bg-amber-400/10 hover:bg-amber-400/15' : ''
-                }`}
-              >
-                {/* Filename */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm truncate ${
-                      isSelected ? 'text-amber-400' : 'text-cream-100'
-                    }`}>
-                      {movie.title || getFileName(movie.file_path)}
-                    </p>
-                    {/* Tags */}
-                    {movie.tags && movie.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {movie.tags.map((tag) => (
-                          <TagPill key={tag.id} tag={tag} size="sm" />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Created date */}
-                <div className="flex items-center text-sm text-charcoal-300">
-                  {formatDate(movie.created_at)}
-                </div>
-
-                {/* File size */}
-                <div className="flex items-center text-sm text-charcoal-300">
-                  {formatFileSize(movie.file_size)}
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center text-sm text-charcoal-300 font-mono">
-                  {formatDuration(movie.duration)}
-                </div>
-
-                {/* Favorite */}
-                <div className="flex items-center justify-center">
-                  <motion.button
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => handleFavoriteToggle(e, movie)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      movie.favorite
-                        ? 'text-red-400 hover:text-red-300'
-                        : 'text-charcoal-600 hover:text-charcoal-400'
-                    }`}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill={movie.favorite ? 'currentColor' : 'none'}
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </motion.button>
-                </div>
-              </motion.div>
-            )})}
-          </motion.div>
+          <List<RowData>
+            rowCount={sortedMovies.length}
+            rowHeight={ROW_HEIGHT}
+            rowComponent={Row}
+            rowProps={rowProps}
+            defaultHeight={containerHeight}
+            overscanCount={5}
+          />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-16 h-16 rounded-full bg-charcoal-800/50 flex items-center justify-center mb-4">
