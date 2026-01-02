@@ -1,5 +1,7 @@
 # LibCat - Local Media Library Manager
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A beautiful Windows desktop app for organizing and tagging your local movie collection.
 
 ![LibCat Screenshot](docs/screenshot.png)
@@ -7,13 +9,16 @@ A beautiful Windows desktop app for organizing and tagging your local movie coll
 ## Features
 
 - **Gallery View**: Browse your movie collection with beautiful thumbnail cards
+- **List View**: View your collection in a detailed table format with sortable columns
 - **Smart Tagging**: Create custom tags with colors to organize your movies
 - **Quick Filters**: Filter by All, Untagged, Watched, or Favorites
 - **Rating System**: Rate movies with a 5-star system
-- **Search**: Quickly find movies by title, notes, or file path
+- **Search**: Quickly find movies by title, notes, file path, or tags
 - **Auto Thumbnails**: Automatically extracts thumbnails from video files using FFmpeg
 - **Custom Posters**: Override auto-generated thumbnails with custom images
+- **TMDB Integration**: Fetch movie metadata, posters, and cast information from The Movie Database
 - **Notes & Metadata**: Add year, notes, and track watched status
+- **Multiple Profiles**: Create separate libraries with optional password protection
 
 ## Tech Stack
 
@@ -30,12 +35,22 @@ A beautiful Windows desktop app for organizing and tagging your local movie coll
 
 ### Prerequisites
 
-- Node.js 18+
-- FFmpeg installed and in PATH (for thumbnail generation)
+- **Node.js 18+** - [Download](https://nodejs.org/)
+- **FFmpeg** - Required for thumbnail generation
+  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
+  - Or install via Chocolatey: `choco install ffmpeg`
+  - Or install via Scoop: `scoop install ffmpeg`
+- **Windows Build Tools** (for native dependencies)
+  - Run as Administrator: `npm install --global windows-build-tools`
+  - Or install Visual Studio Build Tools with C++ workload
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/libcat.git
+cd libcat
+
 # Install dependencies
 npm install
 
@@ -43,14 +58,35 @@ npm install
 npm run electron:dev
 ```
 
-### Building
+### Development Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server only |
+| `npm run electron:dev` | Start full Electron app in dev mode |
+| `npm run build` | Build the renderer (Vite) |
+| `npm run electron:build` | Build production installer |
+
+### Building for Production
 
 ```bash
-# Build for Windows
+# Build Windows installer
 npm run electron:build
 ```
 
-The installer will be created in the `release` folder.
+The installer will be created in the `release` folder as `libcat-{version}-Setup.exe`.
+
+### Troubleshooting Build Issues
+
+If you encounter errors with native modules (better-sqlite3):
+
+```bash
+# Rebuild native modules for Electron
+npm run rebuild
+
+# Or manually rebuild
+npx electron-rebuild
+```
 
 ## Usage
 
@@ -59,6 +95,7 @@ The installer will be created in the `release` folder.
 3. **Tag Movies**: Select a movie and add tags from the details panel
 4. **Filter**: Click on tags in the sidebar to filter your collection
 5. **Find Untagged**: Use the "Untagged" filter to find movies that need categorizing
+6. **TMDB Integration**: Add your TMDB API key in Settings to auto-fetch movie metadata
 
 ## Keyboard Shortcuts
 
@@ -75,42 +112,50 @@ libcat/
 │   ├── preload.ts         # Secure bridge to renderer
 │   └── services/          # Backend services
 │       ├── database.ts    # SQLite operations
+│       ├── profiles.ts    # Profile management
 │       ├── scanner.ts     # File discovery
-│       └── thumbnails.ts  # FFmpeg extraction
+│       ├── thumbnails.ts  # FFmpeg extraction
+│       └── tmdb.ts        # TMDB API integration
 ├── src/                   # React renderer
 │   ├── components/        # UI components
 │   ├── stores/            # Zustand state
 │   ├── styles/            # Tailwind CSS
-│   └── types/             # TypeScript types
+│   ├── types/             # TypeScript types
+│   └── utils/             # Utility functions
+├── build/                 # App icons and resources
 └── package.json
 ```
 
-## Todo
-- [ ] Add duration to preview pane
-- [ ] Make sidebars collapsable
-- [ ] change window close buttons to generic, not macos
-- [ ] make sure hover action in gallery view are clickable
-- [ ] search tags
-- [ ] multi-tag search
-- [ ] edit tags (color, name)
-- [ ] context menu on list and gallery view: edit, remove, play, open location, etc
-- [ ] when holding shift, remove text-select on cards
-- [ ] update ui when removing or adding tags
-- [ ] add actor, director, series fields. ability to also filter by field + tags
-- [ ] tmdb api connection, pull details
-- [ ] ability to add a movie to "want to watch"
-- [ ] ability to create new categories, and rename
-- [ ] when bulk adding tags, better ux, type to narrow search, see all results, etc
-- [ ] import/export library & tags
-- [ ] add list view column: file creation date (not just date added to library)
-- [ ] fuzzy search file names
-- [ ] if pw protected, encrypt thumbnails, tags, filters, data
-- [ ] add to favorites from detailspanel
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Start for Contributors
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make your changes
+4. Run the app to test: `npm run electron:dev`
+5. Commit your changes: `git commit -m 'Add my feature'`
+6. Push to your fork: `git push origin feature/my-feature`
+7. Open a Pull Request
+
+## Roadmap
+
+- [ ] Add duration display to preview pane
+- [ ] Collapsible sidebars
+- [ ] Context menus for movies (edit, remove, play, open location)
+- [ ] Import/export library & tags
+- [ ] Fuzzy search for file names
+- [ ] Encrypted storage for password-protected profiles
 
 ## FAQs
+
 ### How do I regenerate thumbnails?
-Delete the thumbnails folder, then run the following in the console: 
-```
+
+Delete the thumbnails folder in your profile directory, then run the following in the DevTools console (Ctrl+Shift+I):
+
+```javascript
 // Get all movies and regenerate their thumbnails
 const movies = await window.api.getMovies()
 for (const movie of movies) {
@@ -121,7 +166,22 @@ for (const movie of movies) {
 }
 ```
 
+### Where is my data stored?
+
+Your data is stored in your user data directory:
+- Windows: `%APPDATA%/libcat/`
+
+Each profile has its own folder containing `libcat.db` (database) and `thumbnails/` folder.
+
+### How do I get a TMDB API key?
+
+1. Create an account at [themoviedb.org](https://www.themoviedb.org/)
+2. Go to Settings > API
+3. Request an API key (choose "Developer" for personal use)
+4. Copy your API key and paste it in LibCat Settings
+
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+**Disclaimer**: This software is provided "as is", without warranty of any kind. See the LICENSE file for full terms.
