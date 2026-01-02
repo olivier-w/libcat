@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Profile {
@@ -10,6 +10,47 @@ interface Profile {
 
 interface ProfileSelectorProps {
   onProfileSelected: (profile: Profile) => void
+}
+
+// Floating particles component
+function FloatingParticles() {
+  const particles = useMemo(() => 
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 15,
+      duration: 15 + Math.random() * 10,
+      size: 1 + Math.random() * 2,
+    }))
+  , [])
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-bronze-500/30"
+          style={{
+            left: `${p.left}%`,
+            bottom: '-10px',
+            width: p.size,
+            height: p.size,
+          }}
+          animate={{
+            y: [0, -window.innerHeight - 20],
+            x: [0, Math.random() * 40 - 20],
+            opacity: [0, 0.6, 0.6, 0],
+          }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+        />
+      ))}
+    </div>
+  )
 }
 
 export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
@@ -85,12 +126,12 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
 
   const getProfileColor = (name: string): string => {
     const colors = [
-      'from-rose-500 to-pink-600',
-      'from-violet-500 to-purple-600',
-      'from-blue-500 to-cyan-600',
-      'from-emerald-500 to-teal-600',
-      'from-amber-500 to-orange-600',
-      'from-red-500 to-rose-600',
+      'from-rose-400 to-pink-500',
+      'from-amber-400 to-orange-500',
+      'from-emerald-400 to-teal-500',
+      'from-cyan-400 to-sky-500',
+      'from-violet-400 to-purple-500',
+      'from-fuchsia-400 to-pink-500',
     ]
     const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
     return colors[hash % colors.length]
@@ -98,44 +139,84 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-charcoal-900">
-        <div className="text-cream-300">Loading profiles...</div>
+      <div className="h-screen flex items-center justify-center bg-obsidian-700">
+        <motion.div 
+          className="flex items-center gap-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="w-6 h-6 rounded-full border-2 border-bronze-400 border-t-transparent animate-spin" />
+          <span className="text-smoke-400 text-sm">Loading profiles...</span>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col bg-charcoal-900 overflow-hidden">
-      {/* Title Bar - draggable area */}
-      <div className="h-8 flex items-center justify-between px-4 bg-charcoal-900/80 backdrop-blur-sm" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
-        <span className="text-xs font-medium text-charcoal-400">libcat</span>
+    <div className="h-screen flex flex-col overflow-hidden relative">
+      {/* Cinematic Background */}
+      <div className="absolute inset-0 bg-obsidian-700">
+        {/* Radial gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(196,127,90,0.08)_0%,transparent_60%)]" />
+        {/* Top vignette */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-obsidian-950/50 to-transparent" />
+        {/* Bottom vignette */}
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-obsidian-950/50 to-transparent" />
+        {/* Side vignettes */}
+        <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-obsidian-950/30 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-obsidian-950/30 to-transparent" />
+      </div>
+
+      {/* Floating particles */}
+      <FloatingParticles />
+
+      {/* Title Bar */}
+      <div 
+        className="h-10 flex items-center justify-between px-4 relative z-10" 
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <span className="text-xs font-medium text-smoke-600">libcat</span>
         <div className="flex gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <button onClick={() => window.api.windowMinimize()} className="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-300 transition-colors" />
-          <button onClick={() => window.api.windowMaximize()} className="w-3 h-3 rounded-full bg-green-400 hover:bg-green-300 transition-colors" />
-          <button onClick={() => window.api.windowClose()} className="w-3 h-3 rounded-full bg-red-400 hover:bg-red-300 transition-colors" />
+          <button onClick={() => window.api.windowMinimize()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-amber-400 transition-colors" />
+          <button onClick={() => window.api.windowMaximize()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-sage-400 transition-colors" />
+          <button onClick={() => window.api.windowClose()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-cinnabar-400 transition-colors" />
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl font-heading font-bold text-cream-100 mb-2">
-            Welcome to libcat
+          {/* Logo */}
+          <motion.div 
+            className="w-16 h-16 rounded-2xl gradient-accent mx-auto mb-6 flex items-center justify-center shadow-xl shadow-bronze-500/20"
+            initial={{ scale: 0.8, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+          >
+            <svg className="w-9 h-9 text-obsidian-900" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8v2h-2v-2h2zm-2-2H7v4h6v-4zm2 0h2v2h-2v-2zm-8-2h2v2H7v-2zm-2 2v2H3v-2h2zm2-4V5H3v2h4z" />
+            </svg>
+          </motion.div>
+          
+          <h1 className="text-4xl font-heading font-bold text-pearl-100 mb-3 tracking-tight">
+            Welcome to LibCat
           </h1>
-          <p className="text-charcoal-400">
+          <p className="text-smoke-500 text-lg">
             Select a profile to continue
           </p>
         </motion.div>
 
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="mb-8 px-5 py-3 glass-card rounded-xl text-cinnabar-400 text-sm border border-cinnabar-500/20"
           >
             {error}
           </motion.div>
@@ -147,29 +228,39 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
           style={{ 
             gridTemplateColumns: `repeat(${Math.min(profiles.length + 1, 4)}, minmax(0, 1fr))` 
           }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
         >
           {profiles.map((profile, index) => (
             <motion.button
               key={profile.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 25 }}
               onClick={() => handleProfileClick(profile)}
               onContextMenu={(e) => handleContextMenu(e, profile)}
-              className="group flex flex-col items-center gap-3 p-6 rounded-2xl bg-charcoal-800/50 hover:bg-charcoal-800 border border-charcoal-700/50 hover:border-charcoal-600 transition-all duration-200"
+              className="group flex flex-col items-center gap-4 p-6 rounded-2xl glass-card hover:bg-obsidian-400/40 border border-smoke-800/30 hover:border-smoke-700/50 transition-all duration-300 min-w-[160px]"
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               {/* Avatar */}
-              <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getProfileColor(profile.name)} flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-105 transition-transform`}>
+              <motion.div 
+                className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProfileColor(profile.name)} flex items-center justify-center text-4xl font-bold text-white shadow-xl relative overflow-hidden`}
+                whileHover={{ scale: 1.05 }}
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 {profile.name.charAt(0).toUpperCase()}
-              </div>
+              </motion.div>
               
               {/* Name */}
-              <span className="text-cream-200 font-medium">{profile.name}</span>
+              <span className="text-pearl-200 font-medium text-lg">{profile.name}</span>
               
               {/* Password indicator */}
               {profile.passwordHash && (
-                <div className="flex items-center gap-1 text-xs text-charcoal-500">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 text-xs text-smoke-600">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                   <span>Password protected</span>
@@ -180,18 +271,24 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
 
           {/* Create New Profile */}
           <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: profiles.length * 0.05 }}
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: profiles.length * 0.08, type: 'spring', stiffness: 300, damping: 25 }}
             onClick={() => setShowCreateModal(true)}
-            className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-charcoal-700 hover:border-charcoal-500 hover:bg-charcoal-800/30 transition-all duration-200 min-h-[180px]"
+            className="flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border-2 border-dashed border-smoke-800/50 hover:border-bronze-500/50 hover:bg-bronze-500/5 transition-all duration-300 min-h-[220px] min-w-[160px] group"
+            whileHover={{ y: -4, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <div className="w-20 h-20 rounded-2xl bg-charcoal-800 flex items-center justify-center text-charcoal-500 group-hover:text-charcoal-400 transition-colors">
+            <motion.div 
+              className="w-24 h-24 rounded-2xl bg-obsidian-500/50 border border-smoke-800/30 flex items-center justify-center text-smoke-600 group-hover:text-bronze-400 group-hover:border-bronze-500/30 transition-all"
+              whileHover={{ rotate: 90 }}
+              transition={{ duration: 0.3 }}
+            >
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
               </svg>
-            </div>
-            <span className="text-charcoal-400">Create Profile</span>
+            </motion.div>
+            <span className="text-smoke-500 group-hover:text-bronze-400 font-medium transition-colors">Create Profile</span>
           </motion.button>
         </motion.div>
       </div>
@@ -203,22 +300,23 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed z-50 py-1 rounded-lg bg-charcoal-800 border border-charcoal-700 shadow-xl min-w-[140px]"
+            transition={{ duration: 0.1 }}
+            className="fixed z-50 py-1.5 rounded-xl glass-card border border-smoke-800/50 shadow-2xl min-w-[160px] overflow-hidden"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => handleRenameClick(contextMenu.profile)}
-              className="w-full px-4 py-2 text-left text-sm text-cream-200 hover:bg-charcoal-700 transition-colors flex items-center gap-2"
+              className="w-full px-4 py-2.5 text-left text-sm text-pearl-300 hover:bg-obsidian-400/50 transition-colors flex items-center gap-3"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-smoke-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               Rename
             </button>
             <button
               onClick={() => handleDeleteProfile(contextMenu.profile)}
-              className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-2"
+              className="w-full px-4 py-2.5 text-left text-sm text-cinnabar-400 hover:bg-cinnabar-500/10 transition-colors flex items-center gap-3"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -229,12 +327,12 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
         )}
       </AnimatePresence>
 
-      {/* Create Profile Modal */}
+      {/* Modals */}
       <AnimatePresence>
         {showCreateModal && (
           <CreateProfileModal
             onClose={() => setShowCreateModal(false)}
-            onCreated={async (profile) => {
+            onCreated={async () => {
               await loadProfiles()
               setShowCreateModal(false)
             }}
@@ -242,7 +340,6 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
         )}
       </AnimatePresence>
 
-      {/* Password Modal */}
       <AnimatePresence>
         {showPasswordModal && selectedProfile && (
           <PasswordModal
@@ -260,7 +357,6 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
         )}
       </AnimatePresence>
 
-      {/* Rename Modal */}
       <AnimatePresence>
         {showRenameModal && selectedProfile && (
           <RenameProfileModal
@@ -331,106 +427,125 @@ function CreateProfileModal({ onClose, onCreated }: { onClose: () => void; onCre
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-charcoal-800 rounded-2xl border border-charcoal-700 shadow-2xl overflow-hidden"
+        className="w-full max-w-md glass-card rounded-2xl border border-smoke-800/50 shadow-2xl overflow-hidden"
       >
-        <div className="p-6 border-b border-charcoal-700">
-          <h2 className="text-xl font-heading font-semibold text-cream-100">Create Profile</h2>
-          <p className="text-sm text-charcoal-400 mt-1">Create a new library profile</p>
+        <div className="p-6 border-b border-smoke-800/30">
+          <h2 className="text-xl font-heading font-semibold text-pearl-100">Create Profile</h2>
+          <p className="text-sm text-smoke-500 mt-1">Create a new library profile</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="px-3 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-4 py-3 rounded-xl bg-cinnabar-500/10 border border-cinnabar-500/20 text-cinnabar-400 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           <div>
-            <label className="block text-sm text-charcoal-400 mb-2">Profile Name</label>
+            <label className="block text-sm text-smoke-400 mb-2 font-medium">Profile Name</label>
             <input
               ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter profile name"
-              className="w-full px-4 py-3 rounded-lg bg-charcoal-900 border border-charcoal-700 text-cream-100 placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl input-field"
             />
           </div>
 
           <div className="flex items-center gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={() => setUsePassword(!usePassword)}
-              className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${
+              className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
                 usePassword
-                  ? 'bg-amber-400 border-amber-400'
-                  : 'border-charcoal-600 hover:border-charcoal-500'
+                  ? 'bg-bronze-500 border-bronze-500'
+                  : 'border-smoke-700 hover:border-smoke-600'
               }`}
+              whileTap={{ scale: 0.9 }}
             >
               {usePassword && (
-                <svg className="w-3 h-3 text-charcoal-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <motion.svg 
+                  className="w-3 h-3 text-obsidian-900" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
+                </motion.svg>
               )}
-            </button>
-            <label className="text-sm text-cream-200 cursor-pointer" onClick={() => setUsePassword(!usePassword)}>
+            </motion.button>
+            <label className="text-sm text-smoke-300 cursor-pointer" onClick={() => setUsePassword(!usePassword)}>
               Protect with password
             </label>
           </div>
 
-          {usePassword && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm text-charcoal-400 mb-2">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full px-4 py-3 rounded-lg bg-charcoal-900 border border-charcoal-700 text-cream-100 placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-charcoal-400 mb-2">Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                  className="w-full px-4 py-3 rounded-lg bg-charcoal-900 border border-charcoal-700 text-cream-100 placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
-                />
-              </div>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {usePassword && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4 overflow-hidden"
+              >
+                <div>
+                  <label className="block text-sm text-smoke-400 mb-2 font-medium">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full px-4 py-3 rounded-xl input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-smoke-400 mb-2 font-medium">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    className="w-full px-4 py-3 rounded-xl input-field"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex gap-3 pt-4">
-            <button
+            <motion.button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg bg-charcoal-700 hover:bg-charcoal-600 text-cream-200 font-medium transition-colors"
+              className="flex-1 px-4 py-3 rounded-xl btn-secondary font-medium"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-charcoal-900 font-medium transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 rounded-xl btn-primary font-medium disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               {loading ? 'Creating...' : 'Create'}
-            </button>
+            </motion.button>
           </div>
         </form>
       </motion.div>
@@ -479,31 +594,36 @@ function PasswordModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm bg-charcoal-800 rounded-2xl border border-charcoal-700 shadow-2xl overflow-hidden"
+        className="w-full max-w-sm glass-card rounded-2xl border border-smoke-800/50 shadow-2xl overflow-hidden"
       >
         <div className="p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-charcoal-700 flex items-center justify-center">
-            <svg className="w-8 h-8 text-charcoal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-obsidian-500/50 border border-smoke-800/30 flex items-center justify-center">
+            <svg className="w-8 h-8 text-smoke-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h2 className="text-xl font-heading font-semibold text-cream-100">{profile.name}</h2>
-          <p className="text-sm text-charcoal-400 mt-1">Enter password to unlock</p>
+          <h2 className="text-xl font-heading font-semibold text-pearl-100">{profile.name}</h2>
+          <p className="text-sm text-smoke-500 mt-1">Enter password to unlock</p>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
           {error && (
-            <div className="px-3 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="px-4 py-3 rounded-xl bg-cinnabar-500/10 border border-cinnabar-500/20 text-cinnabar-400 text-sm text-center"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           <input
@@ -512,24 +632,28 @@ function PasswordModal({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full px-4 py-3 rounded-lg bg-charcoal-900 border border-charcoal-700 text-cream-100 placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors text-center"
+            className="w-full px-4 py-3 rounded-xl input-field text-center"
           />
 
           <div className="flex gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg bg-charcoal-700 hover:bg-charcoal-600 text-cream-200 font-medium transition-colors"
+              className="flex-1 px-4 py-3 rounded-xl btn-secondary font-medium"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-charcoal-900 font-medium transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 rounded-xl btn-primary font-medium disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               {loading ? 'Unlocking...' : 'Unlock'}
-            </button>
+            </motion.button>
           </div>
         </form>
       </motion.div>
@@ -582,25 +706,30 @@ function RenameProfileModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm bg-charcoal-800 rounded-2xl border border-charcoal-700 shadow-2xl overflow-hidden"
+        className="w-full max-w-sm glass-card rounded-2xl border border-smoke-800/50 shadow-2xl overflow-hidden"
       >
-        <div className="p-6 border-b border-charcoal-700">
-          <h2 className="text-xl font-heading font-semibold text-cream-100">Rename Profile</h2>
+        <div className="p-6 border-b border-smoke-800/30">
+          <h2 className="text-xl font-heading font-semibold text-pearl-100">Rename Profile</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="px-3 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-4 py-3 rounded-xl bg-cinnabar-500/10 border border-cinnabar-500/20 text-cinnabar-400 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           <input
@@ -609,29 +738,31 @@ function RenameProfileModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Profile name"
-            className="w-full px-4 py-3 rounded-lg bg-charcoal-900 border border-charcoal-700 text-cream-100 placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors"
+            className="w-full px-4 py-3 rounded-xl input-field"
           />
 
           <div className="flex gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg bg-charcoal-700 hover:bg-charcoal-600 text-cream-200 font-medium transition-colors"
+              className="flex-1 px-4 py-3 rounded-xl btn-secondary font-medium"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-charcoal-900 font-medium transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 rounded-xl btn-primary font-medium disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               {loading ? 'Saving...' : 'Save'}
-            </button>
+            </motion.button>
           </div>
         </form>
       </motion.div>
     </motion.div>
   )
 }
-
-

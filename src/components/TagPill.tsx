@@ -10,43 +10,57 @@ interface TagPillProps {
 
 export function TagPill({ tag, onRemove, onClick, size = 'sm' }: TagPillProps) {
   const sizeClasses = size === 'sm' 
-    ? 'h-6 px-2 text-xs gap-1' 
-    : 'h-7 px-3 text-sm gap-1.5'
+    ? 'text-xs px-2 py-0.5 gap-1' 
+    : 'text-sm px-2.5 py-1 gap-1.5'
 
   return (
     <motion.span
-      layout
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.8, opacity: 0 }}
-      className={`inline-flex items-center rounded-full transition-colors ${sizeClasses} ${
-        onClick ? 'cursor-pointer hover:opacity-80' : ''
-      }`}
+      className={`inline-flex items-center rounded-full font-medium transition-all cursor-default group ${sizeClasses}`}
       style={{ 
-        backgroundColor: `${tag.color}20`,
+        backgroundColor: `${tag.color}15`,
         color: tag.color,
+        border: `1px solid ${tag.color}25`
       }}
       onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.9, opacity: 0 }}
+      layout
     >
+      {/* Color dot */}
       <span
-        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ backgroundColor: tag.color }}
+        className={`rounded-full flex-shrink-0 ${size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'}`}
+        style={{ 
+          backgroundColor: tag.color,
+          boxShadow: `0 0 4px ${tag.color}50`
+        }}
       />
-      <span className="font-medium">{tag.name}</span>
+      
+      <span className="truncate max-w-[80px]">{tag.name}</span>
+      
       {onRemove && (
-        <button
+        <motion.button
           onClick={(e) => {
             e.stopPropagation()
             onRemove()
           }}
-          className="w-4 h-4 rounded-full hover:bg-white/20 flex items-center justify-center ml-0.5 transition-colors"
+          className={`rounded-full hover:bg-white/10 flex items-center justify-center transition-all opacity-60 hover:opacity-100 ${
+            size === 'sm' ? 'w-3.5 h-3.5 -mr-0.5' : 'w-4 h-4 -mr-1'
+          }`}
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
         >
-          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+          <svg 
+            className={size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3'} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </motion.button>
       )}
     </motion.span>
   )
 }
-

@@ -6,8 +6,8 @@ import { fuzzySearchTags } from '../utils/fuzzySearch'
 import { SearchBar } from './SearchBar'
 
 const PRESET_COLORS = [
-  '#f4a261', '#e76f51', '#2a9d8f', '#264653', '#e9c46a',
-  '#9b5de5', '#00bbf9', '#00f5d4', '#fee440', '#f15bb5',
+  '#C47F5A', '#D46B64', '#6B8F71', '#5B8FA8', '#9B7BB8',
+  '#D4956E', '#8B9862', '#7B8FA8', '#A87B9B', '#B89B5B',
 ]
 
 interface SidebarProps {
@@ -21,6 +21,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0])
   const [tagSearchQuery, setTagSearchQuery] = useState('')
+  const [isCollapsed, setIsCollapsed] = useState(false)
   
   const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
 
@@ -119,7 +120,6 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
     try {
       await window.api.deleteTag(tagId)
       removeTagFromState(tagId)
-      // Refresh movies to update their tag associations
       await loadMovies()
     } catch (error) {
       console.error('Failed to delete tag:', error)
@@ -127,18 +127,52 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
   }
 
   return (
-    <aside className="w-64 glass border-r border-charcoal-700/50 flex flex-col">
+    <motion.aside 
+      className="glass border-r border-smoke-900/30 flex flex-col relative"
+      initial={false}
+      animate={{ width: isCollapsed ? 64 : 256 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+    >
+      {/* Collapse Toggle */}
+      <motion.button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-obsidian-400 border border-smoke-800/50 flex items-center justify-center text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300 transition-colors shadow-lg"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <motion.svg 
+          className="w-3 h-3" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+          animate={{ rotate: isCollapsed ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </motion.svg>
+      </motion.button>
+
       {/* Library Section */}
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">
-            Library
-          </h2>
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.h2 
+                className="text-2xs font-semibold text-smoke-500 uppercase tracking-wider"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                Library
+              </motion.h2>
+            )}
+          </AnimatePresence>
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={onAddFolder}
-            className="w-6 h-6 rounded-md bg-charcoal-800 hover:bg-charcoal-700 flex items-center justify-center text-charcoal-400 hover:text-cream-200 transition-colors"
+            className="w-7 h-7 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors"
+            title="Add Folder"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -147,32 +181,63 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
         </div>
         
         {/* Search Bar */}
-        <div className="mb-3">
-          <SearchBar />
-        </div>
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div 
+              className="mb-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <SearchBar />
+            </motion.div>
+          )}
+        </AnimatePresence>
         
+        {/* Filter Nav */}
         <nav className="space-y-1">
           {filters.map((filter) => (
             <motion.button
               key={filter.id}
-              whileHover={{ x: 2 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveFilter(filter.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative overflow-hidden ${
                 activeFilter === filter.id
-                  ? 'bg-amber-400/10 text-amber-400'
-                  : 'text-cream-300 hover:bg-charcoal-800/50 hover:text-cream-100'
+                  ? 'bg-bronze-500/10 text-bronze-400 sidebar-item-active'
+                  : 'text-smoke-300 hover:bg-obsidian-300/30 hover:text-pearl-300'
               }`}
+              title={isCollapsed ? filter.label : undefined}
             >
-              {filter.icon}
-              <span className="flex-1 text-left text-sm font-medium">{filter.label}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                activeFilter === filter.id
-                  ? 'bg-amber-400/20 text-amber-400'
-                  : 'bg-charcoal-700/50 text-charcoal-400'
-              }`}>
-                {filter.count}
+              <span className={activeFilter === filter.id ? 'text-bronze-400' : 'text-smoke-500'}>
+                {filter.icon}
               </span>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <>
+                    <motion.span 
+                      className="flex-1 text-left text-sm font-medium"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {filter.label}
+                    </motion.span>
+                    <motion.span 
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        activeFilter === filter.id
+                          ? 'bg-bronze-500/20 text-bronze-400'
+                          : 'bg-obsidian-300/50 text-smoke-500'
+                      }`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      key={filter.count}
+                    >
+                      {filter.count}
+                    </motion.span>
+                  </>
+                )}
+              </AnimatePresence>
             </motion.button>
           ))}
         </nav>
@@ -180,20 +245,31 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
 
       {/* Divider */}
       <div className="px-4">
-        <div className="h-px bg-charcoal-700/50" />
+        <div className="h-px bg-gradient-to-r from-transparent via-smoke-800/50 to-transparent" />
       </div>
 
       {/* Tags Section */}
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">
-            Tags
-          </h2>
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.h2 
+                className="text-2xs font-semibold text-smoke-500 uppercase tracking-wider"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                Tags
+              </motion.h2>
+            )}
+          </AnimatePresence>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowCreateTag(!showCreateTag)}
-            className="w-6 h-6 rounded-md bg-charcoal-800 hover:bg-charcoal-700 flex items-center justify-center text-charcoal-400 hover:text-cream-200 transition-colors"
+            className="w-7 h-7 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors"
+            title="Create Tag"
+            animate={{ rotate: showCreateTag ? 45 : 0 }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -203,47 +279,57 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
 
         {/* Create Tag Form */}
         <AnimatePresence>
-          {showCreateTag && (
+          {showCreateTag && !isCollapsed && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
               className="mb-4 overflow-hidden"
             >
-              <div className="glass-card rounded-lg p-3 space-y-3">
+              <div className="glass-card rounded-xl p-3 space-y-3">
                 <input
                   type="text"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
                   placeholder="Tag name..."
-                  className="w-full px-3 py-2 rounded-md bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 transition-colors"
+                  className="w-full px-3 py-2 rounded-lg bg-obsidian-500/80 border border-smoke-800/50 text-pearl-200 text-sm placeholder-smoke-600 focus:border-bronze-500/50 focus:ring-1 focus:ring-bronze-500/20 transition-all"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {PRESET_COLORS.map((color) => (
-                    <button
+                    <motion.button
                       key={color}
                       onClick={() => setNewTagColor(color)}
-                      className={`w-6 h-6 rounded-full transition-transform ${
-                        newTagColor === color ? 'scale-110 ring-2 ring-white/50' : 'hover:scale-105'
-                      }`}
+                      className="w-5 h-5 rounded-full transition-all"
                       style={{ backgroundColor: color }}
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.9 }}
+                      animate={{
+                        boxShadow: newTagColor === color 
+                          ? `0 0 0 2px rgba(255,255,255,0.3), 0 0 8px ${color}` 
+                          : 'none'
+                      }}
                     />
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <motion.button
                     onClick={handleCreateTag}
-                    className="flex-1 py-1.5 rounded-md bg-amber-400 text-charcoal-900 text-sm font-medium hover:bg-amber-300 transition-colors"
+                    className="flex-1 py-2 rounded-lg btn-primary text-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     Create
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     onClick={() => setShowCreateTag(false)}
-                    className="px-3 py-1.5 rounded-md bg-charcoal-700 text-cream-300 text-sm hover:bg-charcoal-600 transition-colors"
+                    className="px-4 py-2 rounded-lg btn-secondary text-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     Cancel
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -251,95 +337,146 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
         </AnimatePresence>
 
         {/* Tag Search */}
-        <div className="mb-3 relative">
-          <input
-            type="text"
-            value={tagSearchQuery}
-            onChange={(e) => setTagSearchQuery(e.target.value)}
-            placeholder="Search tags..."
-            className="w-full px-3 py-2 rounded-md bg-charcoal-800 border border-charcoal-700 text-cream-100 text-sm placeholder-charcoal-500 focus:border-amber-400/50 focus:outline-none transition-colors pr-10"
-          />
-          {tagSearchQuery && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => setTagSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-charcoal-400 hover:text-cream-200 transition-colors"
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div 
+              className="mb-3 relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </motion.button>
+              <input
+                type="text"
+                value={tagSearchQuery}
+                onChange={(e) => setTagSearchQuery(e.target.value)}
+                placeholder="Search tags..."
+                className="w-full px-3 py-2 rounded-lg bg-obsidian-500/50 border border-smoke-800/30 text-pearl-200 text-sm placeholder-smoke-600 focus:border-bronze-500/50 focus:outline-none transition-all pr-8"
+              />
+              {tagSearchQuery && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => setTagSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-smoke-500 hover:text-pearl-300 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              )}
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
         {/* Tags List */}
         <nav className="space-y-1">
           {filteredTags.map((tag) => (
             <motion.div
               key={tag.id}
-              whileHover={{ x: 2 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveFilter(tag.id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all group cursor-pointer ${
                 activeFilter === tag.id
-                  ? 'bg-charcoal-800'
-                  : 'hover:bg-charcoal-800/50'
+                  ? 'bg-obsidian-300/40'
+                  : 'hover:bg-obsidian-300/20'
               }`}
+              title={isCollapsed ? tag.name : undefined}
             >
+              {/* Tag Color Dot */}
               <div
-                className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: tag.color }}
-              />
-              <span className={`flex-1 text-left text-sm ${
-                activeFilter === tag.id ? 'text-cream-100' : 'text-cream-300'
-              }`}>
-                {tag.name}
-              </span>
-              <span className="text-xs text-charcoal-500">{getTagCount(tag.id)}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteTag(tag.id)
+                className="w-3 h-3 rounded-full flex-shrink-0 shadow-inner"
+                style={{ 
+                  backgroundColor: tag.color,
+                  boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 4px ${tag.color}40`
                 }}
-                className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-red-500/20 flex items-center justify-center text-charcoal-500 hover:text-red-400 transition-all"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              />
+              
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <>
+                    <motion.span 
+                      className={`flex-1 text-left text-sm truncate ${
+                        activeFilter === tag.id ? 'text-pearl-200' : 'text-smoke-300'
+                      }`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {tag.name}
+                    </motion.span>
+                    <motion.span 
+                      className="text-xs text-smoke-600"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {getTagCount(tag.id)}
+                    </motion.span>
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteTag(tag.id)
+                      }}
+                      className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-cinnabar-400 hover:bg-cinnabar-500/10 transition-all"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      style={{ opacity: 0 }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </motion.button>
+                  </>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
           
-          {filteredTags.length === 0 && tagSearchQuery && (
-            <p className="text-sm text-charcoal-500 text-center py-4">
-              No tags found matching "{tagSearchQuery}"
+          {filteredTags.length === 0 && tagSearchQuery && !isCollapsed && (
+            <p className="text-sm text-smoke-600 text-center py-4">
+              No tags found
             </p>
           )}
           
-          {tags.length === 0 && !showCreateTag && !tagSearchQuery && (
-            <p className="text-sm text-charcoal-500 text-center py-4">
-              No tags yet. Click + to create one.
+          {tags.length === 0 && !showCreateTag && !tagSearchQuery && !isCollapsed && (
+            <p className="text-sm text-smoke-600 text-center py-4">
+              No tags yet
             </p>
           )}
         </nav>
       </div>
 
       {/* Settings Button */}
-      <div className="p-4 border-t border-charcoal-700/50">
-        <button
+      <div className="p-4 border-t border-smoke-900/30">
+        <motion.button
           onClick={onOpenSettings}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-charcoal-400 hover:text-cream-200 hover:bg-charcoal-800/50 transition-colors"
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300/30 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+          whileHover={{ x: isCollapsed ? 0 : 2 }}
+          whileTap={{ scale: 0.98 }}
+          title={isCollapsed ? 'Settings' : undefined}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span className="text-sm">Settings</span>
-        </button>
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.span 
+                className="text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                Settings
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
-    </aside>
+    </motion.aside>
   )
 }
-
