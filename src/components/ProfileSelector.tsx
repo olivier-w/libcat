@@ -240,32 +240,38 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
               transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 25 }}
               onClick={() => handleProfileClick(profile)}
               onContextMenu={(e) => handleContextMenu(e, profile)}
-              className="group flex flex-col items-center gap-4 p-6 rounded-2xl glass-card hover:bg-obsidian-400/40 border border-smoke-800/30 hover:border-smoke-700/50 transition-all duration-300 min-w-[160px]"
+              className="group flex flex-col items-center pt-5 pb-4 px-5 rounded-2xl glass-card hover:bg-obsidian-400/40 border border-smoke-800/30 hover:border-smoke-700/50 transition-all duration-300 min-w-[140px]"
               whileHover={{ y: -4, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {/* Avatar */}
-              <motion.div 
-                className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getProfileColor(profile.name)} flex items-center justify-center text-4xl font-bold text-white shadow-xl relative overflow-hidden`}
-                whileHover={{ scale: 1.05 }}
-              >
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {profile.name.charAt(0).toUpperCase()}
-              </motion.div>
+              {/* Avatar with integrated lock badge */}
+              <div className="relative mb-2.5">
+                <motion.div 
+                  className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getProfileColor(profile.name)} flex items-center justify-center text-3xl font-bold text-white shadow-lg relative overflow-hidden`}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {profile.name.charAt(0).toUpperCase()}
+                </motion.div>
+                
+                {/* Lock badge - only shown for password-protected profiles */}
+                {profile.passwordHash && (
+                  <motion.div 
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-obsidian-600 border border-smoke-700/50 flex items-center justify-center shadow-md"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.08 + 0.15, type: 'spring', stiffness: 400 }}
+                  >
+                    <svg className="w-3 h-3 text-smoke-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </motion.div>
+                )}
+              </div>
               
               {/* Name */}
-              <span className="text-pearl-200 font-medium text-lg">{profile.name}</span>
-              
-              {/* Password indicator */}
-              {profile.passwordHash && (
-                <div className="flex items-center gap-1.5 text-xs text-smoke-600">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span>Password protected</span>
-                </div>
-              )}
+              <span className="text-pearl-200 font-medium text-base">{profile.name}</span>
             </motion.button>
           ))}
 
@@ -275,20 +281,20 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: profiles.length * 0.08, type: 'spring', stiffness: 300, damping: 25 }}
             onClick={() => setShowCreateModal(true)}
-            className="flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border-2 border-dashed border-smoke-800/50 hover:border-bronze-500/50 hover:bg-bronze-500/5 transition-all duration-300 min-h-[220px] min-w-[160px] group"
+            className="flex flex-col items-center pt-5 pb-4 px-5 rounded-2xl border-2 border-dashed border-smoke-800/50 hover:border-bronze-500/50 hover:bg-bronze-500/5 transition-all duration-300 min-w-[140px] group"
             whileHover={{ y: -4, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <motion.div 
-              className="w-24 h-24 rounded-2xl bg-obsidian-500/50 border border-smoke-800/30 flex items-center justify-center text-smoke-600 group-hover:text-bronze-400 group-hover:border-bronze-500/30 transition-all"
+              className="w-20 h-20 rounded-2xl bg-obsidian-500/50 border border-smoke-800/30 flex items-center justify-center text-smoke-600 group-hover:text-bronze-400 group-hover:border-bronze-500/30 transition-all mb-2.5"
               whileHover={{ rotate: 90 }}
               transition={{ duration: 0.3 }}
             >
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
               </svg>
             </motion.div>
-            <span className="text-smoke-500 group-hover:text-bronze-400 font-medium transition-colors">Create Profile</span>
+            <span className="text-smoke-500 group-hover:text-bronze-400 font-medium text-base transition-colors">New Profile</span>
           </motion.button>
         </motion.div>
       </div>
