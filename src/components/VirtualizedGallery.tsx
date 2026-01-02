@@ -45,7 +45,7 @@ function CellComponent({
   const isSelected = selectedIds.has(movie.id)
   
   const handleClick = (e: React.MouseEvent) => {
-    toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)
+    toggleMovieSelection(movie, index, e.shiftKey, e.ctrlKey || e.metaKey, movies)
   }
   
   const handleDoubleClick = () => {

@@ -127,7 +127,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setSelectedMovies: (movies) => set({ 
     selectedMovies: movies, 
     selectedIds: new Set(movies.map(m => m.id)),
-    selectedMovie: movies.length === 1 ? movies[0] : null 
+    selectedMovie: movies.length === 1 ? movies[0] : null,
+    lastSelectedIndex: movies.length > 0 ? 0 : null
   }),
   
   toggleMovieSelection: (movie, index, shiftKey, ctrlKey, displayedMovies) => {
@@ -180,6 +181,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   
   setActiveFilter: (filter) => {
     set({ activeFilter: filter })
+    get().clearSelection()
     get().applyFilter()
   },
   setSearchQuery: (() => {
