@@ -1,14 +1,26 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 
 export function ScanModal() {
   const { isScanning, scanProgress } = useLibraryStore()
+  const [isCancelling, setIsCancelling] = useState(false)
 
   if (!isScanning) {
     return null
   }
 
   const progress = scanProgress ? (scanProgress.current / scanProgress.total) * 100 : 0
+
+  const handleCancel = async () => {
+    setIsCancelling(true)
+    try {
+      await window.api.cancelScan()
+    } catch (error) {
+      console.error('Failed to cancel scan:', error)
+      setIsCancelling(false)
+    }
+  }
 
   return (
     <motion.div
@@ -53,7 +65,7 @@ export function ScanModal() {
           </div>
 
           <h2 className="font-heading text-xl font-semibold text-pearl-100 mb-2">
-            Scanning for Movies
+            {isCancelling ? 'Cancelling...' : 'Scanning for Movies'}
           </h2>
           
           {scanProgress ? (
@@ -104,6 +116,17 @@ export function ScanModal() {
               </div>
             </div>
           )}
+
+          {/* Cancel Button */}
+          <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="mt-6 px-6 py-2 text-sm font-medium text-smoke-400 hover:text-pearl-100 
+                       bg-smoke-800/50 hover:bg-smoke-700/50 rounded-lg transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCancelling ? 'Stopping...' : 'Cancel'}
+          </button>
         </div>
       </motion.div>
     </motion.div>

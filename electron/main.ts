@@ -17,6 +17,9 @@ let profileService: ProfileService
 let userDataPath: string
 let currentProfilePath: string | null = null
 
+// Scan cancellation flag
+let scanCancelled = false
+
 // Register custom protocol for local files
 function registerLocalFileProtocol() {
   protocol.handle('local-file', async (request) => {
@@ -279,8 +282,17 @@ function registerIpcHandlers() {
     return result.filePaths[0] || null
   })
 
+  // Scan cancellation handler
+  ipcMain.handle('scan:cancel', async () => {
+    scanCancelled = true
+    return { cancelled: true }
+  })
+
   ipcMain.handle('folder:scan', async (_, folderPath: string) => {
     if (!db || !thumbnailService) throw new Error('No profile selected')
+    
+    // Reset cancellation flag at start of new scan
+    scanCancelled = false
     
     const videoFiles = await scanner.scanFolder(folderPath)
     const results: any[] = []
@@ -289,6 +301,15 @@ function registerIpcHandlers() {
     const tmdb = getTmdbService()
 
     for (let i = 0; i < videoFiles.length; i++) {
+      // Check for cancellation before processing each file
+      if (scanCancelled) {
+        mainWindow?.webContents.send('scan:cancelled', {
+          processed: results.filter(r => !r.skipped).length,
+          total: videoFiles.length,
+        })
+        return results
+      }
+
       const file = videoFiles[i]
       
       // Check if already in database
@@ -405,10 +426,23 @@ function registerIpcHandlers() {
   ipcMain.handle('files:addFromPaths', async (_, paths: string[]) => {
     if (!db || !thumbnailService) throw new Error('No profile selected')
     
+    // Reset cancellation flag at start of new scan
+    scanCancelled = false
+    
     const results: any[] = []
     const tmdb = getTmdbService()
 
-    for (const filePath of paths) {
+    for (let i = 0; i < paths.length; i++) {
+      // Check for cancellation before processing each file
+      if (scanCancelled) {
+        mainWindow?.webContents.send('scan:cancelled', {
+          processed: results.filter(r => !r.skipped).length,
+          total: paths.length,
+        })
+        return results
+      }
+
+      const filePath = paths[i]
       const stats = await scanner.getFileStats(filePath)
       if (!stats || !scanner.isVideoFile(filePath)) continue
 
@@ -464,6 +498,13 @@ function registerIpcHandlers() {
       }
 
       results.push(movie)
+
+      // Send progress for drag-and-drop too
+      mainWindow?.webContents.send('scan:progress', {
+        current: i + 1,
+        total: paths.length,
+        file: filename,
+      })
     }
 
     return results
