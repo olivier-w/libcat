@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef, type ReactElement } from 'react'
+import { useMemo, useCallback, useRef, useLayoutEffect, useState, type ReactElement } from 'react'
 import { List } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -200,24 +200,37 @@ export function ListView({ sortedMovies }: ListViewProps) {
     setSortDirection,
   } = useLibraryStore()
   const containerRef = useRef<HTMLDivElement>(null)
-  const containerHeight = useRef(600)
+  const [containerHeight, setContainerHeight] = useState(600)
 
   const selectedIds = useMemo(() => new Set(selectedMovies.map(m => m.id)), [selectedMovies])
 
-  const updateHeight = useCallback(() => {
+  useLayoutEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        if (rect.height > 0) {
+          setContainerHeight(rect.height)
+        }
+      }
+    }
+    
+    updateHeight()
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight()
+    })
+    
     if (containerRef.current) {
-      containerHeight.current = containerRef.current.clientHeight
+      resizeObserver.observe(containerRef.current)
+    }
+    
+    window.addEventListener('resize', updateHeight)
+    
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateHeight)
     }
   }, [])
-
-  useMemo(() => {
-    if (typeof window === 'undefined') return
-    const observer = new ResizeObserver(updateHeight)
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
-    }
-    return () => observer.disconnect()
-  }, [updateHeight])
 
   const handleSort = useCallback((column: SortColumn) => {
     if (sortColumn === column) {
@@ -319,9 +332,9 @@ export function ListView({ sortedMovies }: ListViewProps) {
   }), [sortedMovies, selectedIds, handleSelect, handleDoubleClick, handleFavoriteToggle, formatDate, formatFileSize, formatDuration, getFileName])
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col">
+    <div className="flex-1 overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
       {/* Header */}
-      <div className="grid grid-cols-[40px,1fr,100px,80px,80px,60px] gap-4 px-4 py-3 bg-obsidian-500/50 border-b border-smoke-900/30 text-2xs font-semibold text-smoke-600 uppercase tracking-wider">
+      <div className="grid grid-cols-[40px,1fr,100px,80px,80px,60px] gap-4 px-4 py-3 bg-obsidian-500/50 border-b border-smoke-900/30 text-2xs font-semibold text-smoke-600 uppercase tracking-wider flex-shrink-0">
         <div></div>
         <button
           onClick={() => handleSort('title')}
@@ -355,16 +368,21 @@ export function ListView({ sortedMovies }: ListViewProps) {
       </div>
 
       {/* Virtualized List */}
-      <div ref={containerRef} className="flex-1 overflow-hidden">
+      <div 
+        ref={containerRef} 
+        style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}
+      >
         {sortedMovies.length > 0 ? (
-          <List<RowData>
-            rowCount={sortedMovies.length}
-            rowHeight={ROW_HEIGHT}
-            rowComponent={Row}
-            rowProps={rowProps}
-            defaultHeight={containerHeight.current}
-            overscanCount={5}
-          />
+          containerHeight > 0 && (
+            <List<RowData>
+              rowCount={sortedMovies.length}
+              rowHeight={ROW_HEIGHT}
+              rowComponent={Row}
+              rowProps={rowProps}
+              defaultHeight={containerHeight}
+              overscanCount={5}
+            />
+          )
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-20 h-20 rounded-2xl bg-obsidian-400/30 flex items-center justify-center mb-4">

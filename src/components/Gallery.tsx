@@ -258,7 +258,8 @@ export function Gallery() {
         {viewMode === 'list' ? (
           <motion.div
             key="list"
-            className="flex-1 overflow-hidden"
+            className="flex-1 flex flex-col overflow-hidden"
+            style={{ minHeight: 0 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -302,7 +303,8 @@ export function Gallery() {
         ) : (
           <motion.div
             key="grid"
-            className="flex-1 overflow-hidden"
+            className="flex-1 flex flex-col overflow-hidden"
+            style={{ minHeight: 0 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

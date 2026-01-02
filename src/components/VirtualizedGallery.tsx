@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, type CSSProperties, type ReactElement } from 'react'
+import { memo, useState, useCallback, useRef, useLayoutEffect, type CSSProperties, type ReactElement } from 'react'
 import { Grid, type CellComponentProps } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -276,16 +276,43 @@ function CellComponent({
 const MemoizedCell = memo(CellComponent)
 
 export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
-  // Track container width to calculate responsive column count
-  const [containerWidth, setContainerWidth] = useState(800) // Default estimate
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   
-  // Handle resize events from Grid
-  const handleResize = useCallback((size: { width: number; height: number }) => {
-    setContainerWidth(size.width)
+  // Use useLayoutEffect to measure before paint
+  useLayoutEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        if (rect.width > 0 && rect.height > 0) {
+          setDimensions({ width: rect.width, height: rect.height })
+        }
+      }
+    }
+    
+    // Initial measurement
+    updateDimensions()
+    
+    // Use ResizeObserver for responsive updates
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions()
+    })
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+    
+    // Also listen to window resize as fallback
+    window.addEventListener('resize', updateDimensions)
+    
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateDimensions)
+    }
   }, [])
   
   // Calculate responsive column count based on container width
-  const contentWidth = containerWidth - PADDING * 2
+  const contentWidth = Math.max(0, dimensions.width - PADDING * 2)
   const columnCount = Math.max(1, Math.floor((contentWidth + ITEM_GAP) / (ITEM_MIN_WIDTH + ITEM_GAP)))
   const columnWidth = contentWidth / columnCount
   const rowCount = Math.ceil(movies.length / columnCount)
@@ -297,18 +324,28 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
   }
   
   return (
-    <div className="flex-1 overflow-hidden" style={{ padding: PADDING }}>
-      <Grid
-        cellComponent={MemoizedCell}
-        cellProps={cellProps}
-        columnCount={columnCount}
-        columnWidth={columnWidth}
-        rowCount={rowCount}
-        rowHeight={ITEM_HEIGHT}
-        overscanCount={2}
-        onResize={handleResize}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <div 
+      ref={containerRef} 
+      style={{ 
+        flex: 1, 
+        overflow: 'hidden',
+        minHeight: 0, // Important for flex children
+      }}
+    >
+      {dimensions.width > 0 && dimensions.height > 0 && (
+        <Grid
+          cellComponent={MemoizedCell}
+          cellProps={cellProps}
+          columnCount={columnCount}
+          columnWidth={columnWidth}
+          rowCount={rowCount}
+          rowHeight={ITEM_HEIGHT}
+          width={dimensions.width}
+          height={dimensions.height}
+          overscanCount={2}
+          style={{ padding: PADDING }}
+        />
+      )}
     </div>
   )
 }
