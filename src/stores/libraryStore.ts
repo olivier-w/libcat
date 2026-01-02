@@ -206,18 +206,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   // Data operations
   loadMovies: async () => {
     try {
-      const { selectedMovie, selectedIds } = get()
       // Use batch method to get all movies with tags in a single query
       const moviesWithTags = await window.api.getMoviesWithTags()
       
-      // Update selectedMovie and selectedMovies to point to the updated movie objects
-      const updatedSelectedMovie = selectedMovie
-        ? moviesWithTags.find((m: Movie) => m.id === selectedMovie.id) || null
-        : null
+      // Get current selection state (use whatever is current at completion time)
+      const { selectedIds: currentSelectedIds } = get()
       
-      // Filter selectedMovies using the Set for efficiency
-      const updatedSelectedMovies = moviesWithTags.filter((m: Movie) => selectedIds.has(m.id))
+      // Get fresh movie references for selected movies
+      const updatedSelectedMovies = moviesWithTags.filter((m: Movie) => currentSelectedIds.has(m.id))
       const updatedSelectedIds = new Set(updatedSelectedMovies.map((m: Movie) => m.id))
+      // Always derive selectedMovie from selectedMovies to ensure they stay in sync
+      const updatedSelectedMovie = updatedSelectedMovies.length === 1 ? updatedSelectedMovies[0] : null
       
       set({ 
         movies: moviesWithTags,
