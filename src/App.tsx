@@ -9,6 +9,7 @@ import { ScanModal } from './components/ScanModal'
 import { ProfileSelector } from './components/ProfileSelector'
 import { Toast } from './components/Toast'
 import { SettingsModal } from './components/SettingsModal'
+import { TagManagementModal } from './components/TagManagementModal'
 import { useToastStore } from './stores/toastStore'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
   const addToast = useToastStore((state) => state.addToast)
   const [showScanModal, setShowScanModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showTagManager, setShowTagManager] = useState(false)
   const scanCancelledRef = useRef(false)
 
   useEffect(() => {
@@ -105,7 +107,11 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <Sidebar onAddFolder={handleAddFolder} onOpenSettings={() => setShowSettings(true)} />
+        <Sidebar 
+          onAddFolder={handleAddFolder} 
+          onOpenSettings={() => setShowSettings(true)} 
+          onOpenTagManager={() => setShowTagManager(true)}
+        />
 
         {/* Center - Gallery */}
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -126,6 +132,11 @@ function App() {
       {/* Settings Modal */}
       <AnimatePresence>
         <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      </AnimatePresence>
+
+      {/* Tag Management Modal */}
+      <AnimatePresence>
+        <TagManagementModal isOpen={showTagManager} onClose={() => setShowTagManager(false)} />
       </AnimatePresence>
 
       {/* Toast Notifications */}

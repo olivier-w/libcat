@@ -1,5 +1,5 @@
 export { TitleBar } from './TitleBar'
-export { Sidebar } from './Sidebar'
+export { Sidebar, PRESET_COLORS } from './Sidebar'
 export { Gallery } from './Gallery'
 export { ListView } from './ListView'
 export { DetailsPanel } from './DetailsPanel'
@@ -10,4 +10,6 @@ export { ScanModal } from './ScanModal'
 export { ProfileSelector } from './ProfileSelector'
 export { Toast } from './Toast'
 export { WindowControls } from './WindowControls'
+export { TagManagementModal } from './TagManagementModal'
+export { ColorPicker } from './ColorPicker'
 
