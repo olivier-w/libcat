@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
-import type { FilterType } from '../types'
+import type { FilterType, Tag } from '../types'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
 import { SearchBar } from './SearchBar'
+import { ColorPicker } from './ColorPicker'
 
-const PRESET_COLORS = [
+export const PRESET_COLORS = [
   '#F4A261', '#D46B64', '#6B8F71', '#5B8FA8', '#9B7BB8',
   '#D4956E', '#8B9862', '#7B8FA8', '#A87B9B', '#F15BB5',
 ]
@@ -13,17 +14,34 @@ const PRESET_COLORS = [
 interface SidebarProps {
   onAddFolder: () => void
   onOpenSettings: () => void
+  onOpenTagManager?: () => void
 }
 
-export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
-  const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, loadMovies } = useLibraryStore()
+export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: SidebarProps) {
+  const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, updateTagInState, loadMovies } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0])
   const [tagSearchQuery, setTagSearchQuery] = useState('')
   const [isCollapsed, setIsCollapsed] = useState(false)
   
+  // Inline tag editing state
+  const [editingTagId, setEditingTagId] = useState<number | null>(null)
+  const [editTagName, setEditTagName] = useState('')
+  const [editTagColor, setEditTagColor] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const editInputRef = useRef<HTMLInputElement>(null)
+  
   const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
+
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (editingTagId !== null && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.select()
+    }
+  }, [editingTagId])
 
   // Memoize filter counts to avoid recalculating on every render
   const filterCounts = useMemo(() => ({
@@ -123,6 +141,80 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
       await loadMovies()
     } catch (error) {
       console.error('Failed to delete tag:', error)
+    }
+  }
+
+  // Enter edit mode for a tag
+  const handleStartEditTag = (tag: Tag, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+    setEditingTagId(tag.id)
+    setEditTagName(tag.name)
+    setEditTagColor(tag.color)
+    setEditError(null)
+  }
+
+  // Cancel editing
+  const handleCancelEditTag = () => {
+    setEditingTagId(null)
+    setEditTagName('')
+    setEditTagColor('')
+    setEditError(null)
+  }
+
+  // Save tag edits
+  const handleSaveEditTag = async () => {
+    if (editingTagId === null) return
+    
+    const trimmedName = editTagName.trim()
+    if (!trimmedName) {
+      setEditError('Tag name is required')
+      return
+    }
+    
+    if (trimmedName.length > 50) {
+      setEditError('Tag name is too long (max 50 characters)')
+      return
+    }
+
+    // Check for duplicate name (case-insensitive, excluding current tag)
+    const duplicate = tags.find(
+      t => t.id !== editingTagId && t.name.toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (duplicate) {
+      setEditError('A tag with this name already exists')
+      return
+    }
+
+    setIsSavingEdit(true)
+    setEditError(null)
+
+    try {
+      const updatedTag = await window.api.updateTag(editingTagId, trimmedName, editTagColor)
+      updateTagInState(editingTagId, { name: updatedTag.name, color: updatedTag.color })
+      await loadMovies() // Refresh movies to update tag references
+      handleCancelEditTag()
+    } catch (error: any) {
+      console.error('Failed to update tag:', error)
+      if (error.message?.includes('UNIQUE constraint')) {
+        setEditError('A tag with this name already exists')
+      } else {
+        setEditError('Failed to save changes')
+      }
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  // Handle keyboard events in edit mode
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSaveEditTag()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancelEditTag()
     }
   }
 
@@ -288,18 +380,35 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
               </motion.h2>
             )}
           </AnimatePresence>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowCreateTag(!showCreateTag)}
-            className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
-            title="Create Tag"
-            animate={{ rotate: showCreateTag ? 45 : 0 }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </motion.button>
+          <div className="flex items-center gap-1">
+            {/* Manage Tags Button */}
+            {!isCollapsed && onOpenTagManager && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onOpenTagManager}
+                className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
+                title="Manage Tags"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </motion.button>
+            )}
+            {/* Create Tag Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowCreateTag(!showCreateTag)}
+              className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
+              title="Create Tag"
+              animate={{ rotate: showCreateTag ? 45 : 0 }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </motion.button>
+          </div>
         </div>
 
         {/* Create Tag Form */}
@@ -321,23 +430,12 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
                   className="w-full px-3 py-2 rounded-lg bg-obsidian-500/80 border border-smoke-800/50 text-pearl-200 text-sm placeholder-smoke-600 focus:border-bronze-500/50 focus:ring-1 focus:ring-bronze-500/20 transition-all"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
                 />
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_COLORS.map((color) => (
-                    <motion.button
-                      key={color}
-                      onClick={() => setNewTagColor(color)}
-                      className="w-5 h-5 rounded-full transition-all"
-                      style={{ backgroundColor: color }}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      animate={{
-                        boxShadow: newTagColor === color 
-                          ? `0 0 0 2px rgba(255,255,255,0.3), 0 0 8px ${color}` 
-                          : 'none'
-                      }}
-                    />
-                  ))}
-                </div>
+                <ColorPicker
+                  value={newTagColor}
+                  onChange={setNewTagColor}
+                  size="sm"
+                  showCustomInput={false}
+                />
                 <div className="flex gap-2">
                   <motion.button
                     onClick={handleCreateTag}
@@ -398,72 +496,152 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
         {/* Tags List */}
         <nav className="space-y-1">
           {filteredTags.map((tag) => (
-            <motion.div
+            <div 
               key={tag.id}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveFilter(tag.id)}
-              className={`w-full flex items-center rounded-lg transition-all group cursor-pointer min-h-[40px] ${
-                isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
-              } ${
-                activeFilter === tag.id
-                  ? 'bg-obsidian-300/40'
-                  : 'hover:bg-obsidian-300/20'
-              }`}
-              title={isCollapsed ? `${tag.name} (${getTagCount(tag.id)})` : undefined}
+              className="rounded-lg transition-colors duration-150 overflow-hidden"
+              style={{
+                backgroundColor: editingTagId === tag.id && !isCollapsed ? 'rgba(45, 45, 60, 0.6)' : 'transparent'
+              }}
             >
-              {/* Tag Color Dot */}
-              <motion.div
-                className="rounded-full flex-shrink-0"
-                animate={{ 
-                  width: isCollapsed ? 12 : 12,
-                  height: isCollapsed ? 12 : 12,
-                }}
-                style={{ 
-                  backgroundColor: tag.color,
-                  boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 6px ${tag.color}50`
-                }}
-              />
-              
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <>
-                    <motion.span 
-                      className={`flex-1 text-left text-sm truncate ${
-                        activeFilter === tag.id ? 'text-pearl-200' : 'text-smoke-300'
-                      }`}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {tag.name}
-                    </motion.span>
-                    <motion.span 
-                      className="text-xs text-smoke-600 tabular-nums"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {getTagCount(tag.id)}
-                    </motion.span>
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteTag(tag.id)
+              {editingTagId === tag.id && !isCollapsed ? (
+                // Edit Mode - Compact vertical layout
+                <div className="p-2 space-y-2">
+                  {/* Input row with action icons */}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-200"
+                      style={{ 
+                        backgroundColor: editTagColor,
+                        boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 6px ${editTagColor}50`
                       }}
-                      className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-cinnabar-400 hover:bg-cinnabar-500/10 transition-all opacity-0 group-hover:opacity-100"
-                      initial={{ opacity: 0 }}
-                      whileHover={{ scale: 1.1 }}
+                    />
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editTagName}
+                      onChange={(e) => setEditTagName(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      placeholder="Tag name..."
+                      maxLength={50}
+                      disabled={isSavingEdit}
+                      className="flex-1 min-w-0 px-2 py-1 rounded-md bg-obsidian-600/80 border border-smoke-800/50 text-pearl-200 text-sm placeholder-smoke-600 focus:border-bronze-500/50 focus:outline-none transition-all disabled:opacity-50"
+                    />
+                    <button
+                      onClick={handleSaveEditTag}
+                      disabled={isSavingEdit}
+                      className="w-6 h-6 rounded-md bg-bronze-500/20 text-bronze-400 hover:bg-bronze-500/30 transition-colors disabled:opacity-50 flex items-center justify-center flex-shrink-0"
+                      title="Save (Enter)"
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isSavingEdit ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleCancelEditTag}
+                      disabled={isSavingEdit}
+                      className="w-6 h-6 rounded-md bg-obsidian-500/50 text-smoke-400 hover:bg-obsidian-500/70 hover:text-smoke-300 transition-colors disabled:opacity-50 flex items-center justify-center flex-shrink-0"
+                      title="Cancel (Esc)"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </motion.button>
-                  </>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                    </button>
+                  </div>
+                  
+                  {/* Color swatches */}
+                  <div className="flex flex-wrap gap-1 pl-5">
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setEditTagColor(color)}
+                        disabled={isSavingEdit}
+                        className="w-4 h-4 rounded-full transition-all disabled:opacity-50 hover:scale-110"
+                        style={{ 
+                          backgroundColor: color,
+                          boxShadow: editTagColor === color 
+                            ? `0 0 0 2px rgba(255,255,255,0.3), 0 0 6px ${color}` 
+                            : 'none'
+                        }}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Error */}
+                  {editError && (
+                    <p className="text-xs text-cinnabar-400 pl-5">{editError}</p>
+                  )}
+                </div>
+              ) : (
+                // Display Mode
+                <div
+                  onClick={() => setActiveFilter(tag.id)}
+                  onDoubleClick={(e) => !isCollapsed && handleStartEditTag(tag, e)}
+                  className={`w-full flex items-center rounded-lg transition-colors duration-150 min-h-[40px] ${
+                    isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+                  } ${
+                    activeFilter === tag.id
+                      ? 'bg-obsidian-300/40'
+                      : 'hover:bg-obsidian-300/20 cursor-pointer'
+                  } group`}
+                  title={isCollapsed ? `${tag.name} (${getTagCount(tag.id)})` : 'Double-click to edit'}
+                >
+                  {/* Tag Color Dot */}
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ 
+                      backgroundColor: tag.color,
+                      boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 6px ${tag.color}50`
+                    }}
+                  />
+                  
+                  {!isCollapsed && (
+                    <>
+                      <span className={`flex-1 text-left text-sm truncate ${
+                        activeFilter === tag.id ? 'text-pearl-200' : 'text-smoke-300'
+                      }`}>
+                        {tag.name}
+                      </span>
+                      
+                      <span className="text-xs text-smoke-600 tabular-nums">
+                        {getTagCount(tag.id)}
+                      </span>
+                      
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <button
+                          onClick={(e) => handleStartEditTag(tag, e)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-bronze-400 hover:bg-bronze-500/10 transition-colors"
+                          title="Edit tag"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteTag(tag.id)
+                          }}
+                          className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-cinnabar-400 hover:bg-cinnabar-500/10 transition-colors"
+                          title="Delete tag"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
           
           {filteredTags.length === 0 && tagSearchQuery && !isCollapsed && (
