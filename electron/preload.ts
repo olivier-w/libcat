@@ -11,6 +11,9 @@ export interface Profile {
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('api', {
+  // Platform
+  platform: process.platform,
+  
   // Window controls
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowMaximize: () => ipcRenderer.send('window:maximize'),
@@ -86,6 +89,9 @@ contextBridge.exposeInMainWorld('api', {
 
 // Type declarations for the exposed API
 export type Api = {
+  // Platform
+  platform: NodeJS.Platform
+  
   // Window controls
   windowMinimize: () => void
   windowMaximize: () => void
