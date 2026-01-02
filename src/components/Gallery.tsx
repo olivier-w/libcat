@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
 import { ListView } from './ListView'
@@ -39,6 +39,7 @@ export function Gallery() {
     sortDirection,
     setSortColumn,
     setSortDirection,
+    setSelectedMovies,
   } = useLibraryStore()
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
 
@@ -75,6 +76,25 @@ export function Gallery() {
     })
     return sorted
   }, [filteredMovies, sortColumn, sortDirection])
+
+  // Keyboard shortcut: Ctrl+A / Cmd+A to select all movies in current view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input
+      const activeEl = document.activeElement
+      if (activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA') {
+        return
+      }
+      
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setSelectedMovies(sortedMovies)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [sortedMovies, setSelectedMovies])
 
   const handleSortChange = (column: SortColumn) => {
     if (sortColumn === column) {
