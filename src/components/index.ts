@@ -9,4 +9,5 @@ export { SearchBar } from './SearchBar'
 export { ScanModal } from './ScanModal'
 export { ProfileSelector } from './ProfileSelector'
 export { Toast } from './Toast'
+export { WindowControls } from './WindowControls'
 

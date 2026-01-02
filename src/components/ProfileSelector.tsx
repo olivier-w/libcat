@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { WindowControls } from './WindowControls'
 
 interface Profile {
   id: string
@@ -172,15 +173,11 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
 
       {/* Title Bar */}
       <div 
-        className="h-10 flex items-center justify-between px-4 relative z-10" 
+        className="h-10 flex items-center justify-between pl-4 relative z-10" 
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <span className="text-xs font-medium text-smoke-600">libcat</span>
-        <div className="flex gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <button onClick={() => window.api.windowMinimize()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-amber-400 transition-colors" />
-          <button onClick={() => window.api.windowMaximize()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-sage-400 transition-colors" />
-          <button onClick={() => window.api.windowClose()} className="w-3 h-3 rounded-full bg-smoke-700 hover:bg-cinnabar-400 transition-colors" />
-        </div>
+        <WindowControls className="" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} />
       </div>
 
       {/* Main Content */}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { WindowControls } from './WindowControls'
 
 export function TitleBar() {
   const { activeProfile, lockProfile } = useLibraryStore()
@@ -23,7 +24,7 @@ export function TitleBar() {
   }
 
   return (
-    <header className="h-11 flex items-center justify-between pl-4 pr-2 titlebar-drag bg-obsidian-700/60 backdrop-blur-xl border-b border-smoke-900/50">
+    <header className="h-11 flex items-center justify-between pl-4 titlebar-drag bg-obsidian-700/60 backdrop-blur-xl border-b border-smoke-900/50">
       {/* App Logo & Title */}
       <div className="flex items-center gap-3 titlebar-no-drag">
         <motion.div 
@@ -76,44 +77,8 @@ export function TitleBar() {
         )}
       </div>
 
-      {/* Window Controls - macOS Style */}
-      <div className="flex items-center gap-2 titlebar-no-drag">
-        {/* Minimize */}
-        <motion.button
-          onClick={() => window.api.windowMinimize()}
-          className="w-3 h-3 rounded-full bg-smoke-600/60 hover:bg-amber-400 flex items-center justify-center group transition-colors"
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <svg className="w-1.5 h-1.5 text-transparent group-hover:text-amber-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={4}>
-            <path strokeLinecap="round" d="M5 12h14" />
-          </svg>
-        </motion.button>
-        
-        {/* Maximize */}
-        <motion.button
-          onClick={() => window.api.windowMaximize()}
-          className="w-3 h-3 rounded-full bg-smoke-600/60 hover:bg-sage-400 flex items-center justify-center group transition-colors"
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <svg className="w-1.5 h-1.5 text-transparent group-hover:text-sage-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-          </svg>
-        </motion.button>
-        
-        {/* Close */}
-        <motion.button
-          onClick={() => window.api.windowClose()}
-          className="w-3 h-3 rounded-full bg-smoke-600/60 hover:bg-cinnabar-400 flex items-center justify-center group transition-colors"
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <svg className="w-1.5 h-1.5 text-transparent group-hover:text-cinnabar-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={4}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </motion.button>
-      </div>
+      {/* Window Controls - Platform adaptive */}
+      <WindowControls className="titlebar-no-drag" />
     </header>
   )
 }
