@@ -7,7 +7,7 @@ import type { Movie } from '../types'
 // Grid dimensions - matching the CSS grid minmax(180px, 1fr) + gap
 const ITEM_MIN_WIDTH = 180
 const ITEM_GAP = 20 // gap-5 = 1.25rem = 20px
-const ITEM_HEIGHT = 300 // aspect-ratio 2:3: ~200px width → 300px height
+const POSTER_ASPECT_RATIO = 1.5 // 2:3 aspect ratio (height = width * 1.5)
 const PADDING = 24 // p-6
 
 interface VirtualizedGalleryProps {
@@ -18,6 +18,7 @@ interface CellData {
   movies: Movie[]
   columnCount: number
   columnWidth: number
+  cardHeight: number
 }
 
 // Cell component for the Grid
@@ -28,6 +29,7 @@ function CellComponent({
   movies,
   columnCount,
   columnWidth,
+  cardHeight,
 }: CellComponentProps<CellData>): ReactElement | null {
   const { selectedIds, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -85,7 +87,7 @@ function CellComponent({
     left: cellPadding,
     top: cellPadding,
     width: columnWidth - ITEM_GAP,
-    height: ITEM_HEIGHT - ITEM_GAP,
+    height: cardHeight,
   }
   
   return (
@@ -317,10 +319,16 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
   const columnWidth = contentWidth / columnCount
   const rowCount = Math.ceil(movies.length / columnCount)
   
+  // Calculate dynamic row height to maintain 2:3 poster aspect ratio
+  const cardWidth = columnWidth - ITEM_GAP
+  const cardHeight = cardWidth * POSTER_ASPECT_RATIO
+  const rowHeight = cardHeight + ITEM_GAP
+  
   const cellProps: CellData = {
     movies,
     columnCount,
     columnWidth,
+    cardHeight,
   }
   
   return (
@@ -339,7 +347,7 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
           columnCount={columnCount}
           columnWidth={columnWidth}
           rowCount={rowCount}
-          rowHeight={ITEM_HEIGHT}
+          rowHeight={rowHeight}
           width={dimensions.width}
           height={dimensions.height}
           overscanCount={2}
