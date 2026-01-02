@@ -128,7 +128,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
 
   return (
     <motion.aside 
-      className="glass border-r border-smoke-900/30 flex flex-col relative"
+      className="glass border-r border-smoke-900/30 flex flex-col relative overflow-visible z-10"
       initial={false}
       animate={{ width: isCollapsed ? 64 : 256 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
@@ -136,12 +136,13 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
       {/* Collapse Toggle */}
       <motion.button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-obsidian-400 border border-smoke-800/50 flex items-center justify-center text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300 transition-colors shadow-lg"
+        className="absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-obsidian-400 border border-smoke-800/50 flex items-center justify-center text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300 transition-colors shadow-lg"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
+        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         <motion.svg 
-          className="w-3 h-3" 
+          className="w-3 h-3 pointer-events-none" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -153,15 +154,21 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
       </motion.button>
 
       {/* Library Section */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
+      <motion.div 
+        className="pt-4 pb-2"
+        animate={{ paddingLeft: isCollapsed ? 8 : 16, paddingRight: isCollapsed ? 8 : 16 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        {/* Library Header */}
+        <div className={`flex items-center mb-3 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.h2 
                 className="text-2xs font-semibold text-smoke-500 uppercase tracking-wider"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
               >
                 Library
               </motion.h2>
@@ -171,7 +178,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={onAddFolder}
-            className="w-7 h-7 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors"
+            className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
             title="Add Folder"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,6 +195,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
             >
               <SearchBar />
             </motion.div>
@@ -201,14 +209,16 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
               key={filter.id}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveFilter(filter.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all relative overflow-hidden ${
+              className={`w-full flex items-center rounded-lg transition-all relative overflow-hidden min-h-[44px] ${
+                isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+              } ${
                 activeFilter === filter.id
                   ? 'bg-bronze-500/10 text-bronze-400 sidebar-item-active'
                   : 'text-smoke-300 hover:bg-obsidian-300/30 hover:text-pearl-300'
               }`}
-              title={isCollapsed ? filter.label : undefined}
+              title={isCollapsed ? `${filter.label} (${filter.count})` : undefined}
             >
-              <span className={activeFilter === filter.id ? 'text-bronze-400' : 'text-smoke-500'}>
+              <span className={`flex-shrink-0 ${activeFilter === filter.id ? 'text-bronze-400' : 'text-smoke-500'}`}>
                 {filter.icon}
               </span>
               <AnimatePresence>
@@ -216,9 +226,10 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
                   <>
                     <motion.span 
                       className="flex-1 text-left text-sm font-medium"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {filter.label}
                     </motion.span>
@@ -228,10 +239,10 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
                           ? 'bg-bronze-500/20 text-bronze-400'
                           : 'bg-obsidian-300/50 text-smoke-500'
                       }`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      key={filter.count}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {filter.count}
                     </motion.span>
@@ -241,23 +252,37 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
             </motion.button>
           ))}
         </nav>
-      </div>
+      </motion.div>
 
       {/* Divider */}
-      <div className="px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-smoke-800/50 to-transparent" />
-      </div>
+      <motion.div 
+        className="flex items-center justify-center"
+        animate={{ paddingLeft: isCollapsed ? 8 : 16, paddingRight: isCollapsed ? 8 : 16 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <motion.div 
+          className="h-px bg-gradient-to-r from-transparent via-smoke-800/50 to-transparent"
+          animate={{ width: '100%' }}
+          transition={{ duration: 0.2 }}
+        />
+      </motion.div>
 
       {/* Tags Section */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
+      <motion.div 
+        className="flex-1 pt-3 pb-2 overflow-y-auto overflow-x-hidden min-h-0"
+        animate={{ paddingLeft: isCollapsed ? 8 : 16, paddingRight: isCollapsed ? 8 : 16 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        {/* Tags Header */}
+        <div className={`flex items-center mb-3 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.h2 
                 className="text-2xs font-semibold text-smoke-500 uppercase tracking-wider"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
               >
                 Tags
               </motion.h2>
@@ -267,7 +292,7 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowCreateTag(!showCreateTag)}
-            className="w-7 h-7 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors"
+            className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
             title="Create Tag"
             animate={{ rotate: showCreateTag ? 45 : 0 }}
           >
@@ -341,9 +366,10 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
           {!isCollapsed && (
             <motion.div 
               className="mb-3 relative"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
             >
               <input
                 type="text"
@@ -376,19 +402,25 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
               key={tag.id}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveFilter(tag.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all group cursor-pointer ${
+              className={`w-full flex items-center rounded-lg transition-all group cursor-pointer min-h-[40px] ${
+                isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+              } ${
                 activeFilter === tag.id
                   ? 'bg-obsidian-300/40'
                   : 'hover:bg-obsidian-300/20'
               }`}
-              title={isCollapsed ? tag.name : undefined}
+              title={isCollapsed ? `${tag.name} (${getTagCount(tag.id)})` : undefined}
             >
               {/* Tag Color Dot */}
-              <div
-                className="w-3 h-3 rounded-full flex-shrink-0 shadow-inner"
+              <motion.div
+                className="rounded-full flex-shrink-0"
+                animate={{ 
+                  width: isCollapsed ? 12 : 12,
+                  height: isCollapsed ? 12 : 12,
+                }}
                 style={{ 
                   backgroundColor: tag.color,
-                  boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 4px ${tag.color}40`
+                  boxShadow: `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 6px ${tag.color}50`
                 }}
               />
               
@@ -399,17 +431,19 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
                       className={`flex-1 text-left text-sm truncate ${
                         activeFilter === tag.id ? 'text-pearl-200' : 'text-smoke-300'
                       }`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {tag.name}
                     </motion.span>
                     <motion.span 
-                      className="text-xs text-smoke-600"
+                      className="text-xs text-smoke-600 tabular-nums"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {getTagCount(tag.id)}
                     </motion.span>
@@ -418,13 +452,9 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
                         e.stopPropagation()
                         handleDeleteTag(tag.id)
                       }}
-                      className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-cinnabar-400 hover:bg-cinnabar-500/10 transition-all"
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 0 }}
-                      whileHover={{ opacity: 1 }}
-                      style={{ opacity: 0 }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                      className="w-5 h-5 rounded flex items-center justify-center text-smoke-600 hover:text-cinnabar-400 hover:bg-cinnabar-500/10 transition-all opacity-0 group-hover:opacity-100"
+                      initial={{ opacity: 0 }}
+                      whileHover={{ scale: 1.1 }}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -448,18 +478,24 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
             </p>
           )}
         </nav>
-      </div>
+      </motion.div>
 
       {/* Settings Button */}
-      <div className="p-4 border-t border-smoke-900/30">
+      <motion.div 
+        className="border-t border-smoke-900/30 py-3"
+        animate={{ paddingLeft: isCollapsed ? 8 : 16, paddingRight: isCollapsed ? 8 : 16 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      >
         <motion.button
           onClick={onOpenSettings}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300/30 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
-          whileHover={{ x: isCollapsed ? 0 : 2 }}
+          className={`w-full flex items-center rounded-lg text-smoke-400 hover:text-pearl-200 hover:bg-obsidian-300/30 transition-colors min-h-[44px] ${
+            isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+          }`}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           title={isCollapsed ? 'Settings' : undefined}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -467,16 +503,17 @@ export function Sidebar({ onAddFolder, onOpenSettings }: SidebarProps) {
             {!isCollapsed && (
               <motion.span 
                 className="text-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
               >
                 Settings
               </motion.span>
             )}
           </AnimatePresence>
         </motion.button>
-      </div>
+      </motion.div>
     </motion.aside>
   )
 }
