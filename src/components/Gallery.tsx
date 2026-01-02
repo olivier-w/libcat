@@ -1,14 +1,9 @@
-import { useRef, useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
-import { MovieCard } from './MovieCard'
 import { ListView } from './ListView'
 import { VirtualizedGallery } from './VirtualizedGallery'
-import { useVisibleItems } from '../hooks/useVisibleItems'
 import type { SortColumn } from '../types'
-
-// Threshold for switching to virtualized grid (preserves smooth animations for smaller libraries)
-const VIRTUALIZATION_THRESHOLD = 1000
 
 const SORT_OPTIONS: { value: SortColumn; label: string }[] = [
   { value: 'title', label: 'Title' },
@@ -29,7 +24,6 @@ export function Gallery() {
     setSortColumn,
     setSortDirection,
   } = useLibraryStore()
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
 
   // Memoized sorted movies for performance
@@ -66,10 +60,6 @@ export function Gallery() {
     return sorted
   }, [filteredMovies, sortColumn, sortDirection])
 
-  // Only use IntersectionObserver for non-virtualized mode
-  const useVirtualization = sortedMovies.length > VIRTUALIZATION_THRESHOLD
-  const { observe, isVisible } = useVisibleItems(useVirtualization ? { current: null } : scrollContainerRef)
-
   const handleSortChange = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -94,16 +84,6 @@ export function Gallery() {
     const tag = tags.find((t) => t.id === activeFilter)
     return tag ? `Tagged: ${tag.name}` : 'Movies'
   }
-
-  // Create a stable callback for each movie to register with observer
-  const createObserveCallback = useCallback(
-    (movieId: number) => (element: HTMLElement | null) => {
-      if (element) {
-        observe(element, movieId)
-      }
-    },
-    [observe]
-  )
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -233,24 +213,8 @@ export function Gallery() {
               : 'No movies match the current filter.'}
           </p>
         </div>
-      ) : useVirtualization ? (
-        // Virtualized grid for large collections (1000+ movies)
-        <VirtualizedGallery movies={sortedMovies} />
       ) : (
-        // Regular grid with animations for smaller collections
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
-            {sortedMovies.map((movie, index) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-                index={index}
-                shouldLoadImage={isVisible(movie.id)}
-                onObserve={createObserveCallback(movie.id)}
-              />
-            ))}
-          </div>
-        </div>
+        <VirtualizedGallery movies={sortedMovies} />
       )}
     </div>
   )
