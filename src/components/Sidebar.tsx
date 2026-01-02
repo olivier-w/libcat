@@ -6,8 +6,8 @@ import { fuzzySearchTags } from '../utils/fuzzySearch'
 import { SearchBar } from './SearchBar'
 
 const PRESET_COLORS = [
-  '#C47F5A', '#D46B64', '#6B8F71', '#5B8FA8', '#9B7BB8',
-  '#D4956E', '#8B9862', '#7B8FA8', '#A87B9B', '#B89B5B',
+  '#F4A261', '#D46B64', '#6B8F71', '#5B8FA8', '#9B7BB8',
+  '#D4956E', '#8B9862', '#7B8FA8', '#A87B9B', '#F15BB5',
 ]
 
 interface SidebarProps {
