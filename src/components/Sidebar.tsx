@@ -271,7 +271,7 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
             whileTap={{ scale: 0.9 }}
             onClick={onAddFolder}
             className="w-8 h-8 rounded-lg bg-obsidian-300/50 hover:bg-bronze-500/20 flex items-center justify-center text-smoke-400 hover:text-bronze-400 transition-colors flex-shrink-0"
-            title="Add Folder"
+            title="Add to library (Ctrl+I)"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

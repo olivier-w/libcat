@@ -35,6 +35,21 @@ function App() {
     }
   }, [activeProfile, loadMovies, loadTags])
 
+  // Keyboard shortcut: Ctrl+I / Cmd+I to add folder to library
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+        e.preventDefault()
+        if (activeProfile && !isScanning) {
+          handleAddFolder()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeProfile, isScanning])
+
   useEffect(() => {
     const unsubscribeProgress = window.api.onScanProgress((data) => {
       setScanProgress(data)
