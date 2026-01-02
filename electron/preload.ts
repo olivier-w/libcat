@@ -50,9 +50,14 @@ contextBridge.exposeInMainWorld('api', {
   // Folder operations
   selectFolder: () => ipcRenderer.invoke('folder:select'),
   scanFolder: (folderPath: string) => ipcRenderer.invoke('folder:scan', folderPath),
+  cancelScan: () => ipcRenderer.invoke('scan:cancel'),
   onScanProgress: (callback: (data: any) => void) => {
     ipcRenderer.on('scan:progress', (_, data) => callback(data))
     return () => ipcRenderer.removeAllListeners('scan:progress')
+  },
+  onScanCancelled: (callback: (data: { processed: number; total: number }) => void) => {
+    ipcRenderer.on('scan:cancelled', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('scan:cancelled')
   },
 
   // File operations
@@ -120,7 +125,9 @@ export type Api = {
   // Folder operations
   selectFolder: () => Promise<string | null>
   scanFolder: (folderPath: string) => Promise<any[]>
+  cancelScan: () => Promise<{ cancelled: boolean }>
   onScanProgress: (callback: (data: any) => void) => () => void
+  onScanCancelled: (callback: (data: { processed: number; total: number }) => void) => () => void
   
   // File operations
   openInExplorer: (filePath: string) => Promise<void>

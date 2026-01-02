@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore, Profile } from './stores/libraryStore'
 import { TitleBar } from './components/TitleBar'
@@ -26,6 +26,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [dragFileCount, setDragFileCount] = useState(0)
+  const scanCancelledRef = useRef(false)
 
   useEffect(() => {
     if (activeProfile) {
@@ -35,14 +36,29 @@ function App() {
   }, [activeProfile, loadMovies, loadTags])
 
   useEffect(() => {
-    const unsubscribe = window.api.onScanProgress((data) => {
+    const unsubscribeProgress = window.api.onScanProgress((data) => {
       setScanProgress(data)
     })
 
+    const unsubscribeCancelled = window.api.onScanCancelled((data) => {
+      scanCancelledRef.current = true
+      setIsScanning(false)
+      setScanProgress(null)
+      setShowScanModal(false)
+      
+      if (data.processed > 0) {
+        loadMovies()
+        addToast(`Scan cancelled. ${data.processed} ${data.processed === 1 ? 'movie' : 'movies'} added.`, 'info')
+      } else {
+        addToast('Scan cancelled.', 'info')
+      }
+    })
+
     return () => {
-      unsubscribe()
+      unsubscribeProgress()
+      unsubscribeCancelled()
     }
-  }, [setScanProgress])
+  }, [setScanProgress, setIsScanning, loadMovies, addToast])
 
   const handleProfileSelected = (profile: Profile) => {
     setActiveProfile(profile)
@@ -52,23 +68,30 @@ function App() {
     const folderPath = await window.api.selectFolder()
     if (!folderPath) return
 
+    scanCancelledRef.current = false
     setIsScanning(true)
     setShowScanModal(true)
     
     try {
       const movies = await window.api.scanFolder(folderPath)
+      // If cancelled, the onScanCancelled handler will take care of cleanup
+      if (scanCancelledRef.current) return
+      
       const newMovies = movies.filter((m: { skipped?: boolean }) => !m.skipped)
       if (newMovies.length > 0) {
         await loadMovies()
       }
       addToast('Scan complete! Your library has been updated.', 'success')
     } catch (error) {
+      if (scanCancelledRef.current) return
       console.error('Scan failed:', error)
       addToast('Scan failed. Please try again.', 'error')
     } finally {
-      setIsScanning(false)
-      setScanProgress(null)
-      setShowScanModal(false)
+      if (!scanCancelledRef.current) {
+        setIsScanning(false)
+        setScanProgress(null)
+        setShowScanModal(false)
+      }
     }
   }
 
@@ -83,23 +106,30 @@ function App() {
 
     if (paths.length === 0) return
 
+    scanCancelledRef.current = false
     setIsScanning(true)
     setShowScanModal(true)
 
     try {
       const movies = await window.api.addFromPaths(paths)
+      // If cancelled, the onScanCancelled handler will take care of cleanup
+      if (scanCancelledRef.current) return
+      
       const newMovies = movies.filter((m: { skipped?: boolean }) => !m.skipped)
       if (newMovies.length > 0) {
         await loadMovies()
       }
       addToast('Scan complete! Your library has been updated.', 'success')
     } catch (error) {
+      if (scanCancelledRef.current) return
       console.error('Failed to add files:', error)
       addToast('Scan failed. Please try again.', 'error')
     } finally {
-      setIsScanning(false)
-      setScanProgress(null)
-      setShowScanModal(false)
+      if (!scanCancelledRef.current) {
+        setIsScanning(false)
+        setScanProgress(null)
+        setShowScanModal(false)
+      }
     }
   }
 

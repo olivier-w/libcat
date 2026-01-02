@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToastStore } from '../stores/toastStore'
 import type { Toast as ToastType } from '../stores/toastStore'
 
 const TOAST_DURATION = 3000
 
-function ToastItem({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: string) => void }) {
+const ToastItem = forwardRef<HTMLDivElement, { toast: ToastType; onDismiss: (id: string) => void }>(
+  function ToastItem({ toast, onDismiss }, ref) {
   const [progress, setProgress] = useState(100)
 
   useEffect(() => {
@@ -96,6 +97,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: -20, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9, transition: { duration: 0.15 } }}
@@ -130,7 +132,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
       </div>
     </motion.div>
   )
-}
+})
 
 export function Toast() {
   const { toasts, removeToast } = useToastStore()
