@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useToastStore } from '../stores/toastStore'
 import type { Toast as ToastType } from '../stores/toastStore'
 
-const TOAST_DURATION = 4000
+const TOAST_DURATION = 3000
 
 function ToastItem({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: string) => void }) {
   const [progress, setProgress] = useState(100)
@@ -20,6 +20,16 @@ function ToastItem({ toast, onDismiss }: { toast: ToastType; onDismiss: (id: str
     }
     requestAnimationFrame(updateProgress)
   }, [])
+
+  // Auto-dismiss success toasts after duration
+  useEffect(() => {
+    if (toast.type === 'success') {
+      const timer = setTimeout(() => {
+        onDismiss(toast.id)
+      }, TOAST_DURATION)
+      return () => clearTimeout(timer)
+    }
+  }, [toast.id, toast.type, onDismiss])
 
   const getIcon = () => {
     switch (toast.type) {
