@@ -254,7 +254,7 @@ export function Gallery() {
       </div>
 
       {/* Content */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {viewMode === 'list' ? (
           <motion.div
             key="list"
