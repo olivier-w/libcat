@@ -217,6 +217,7 @@ function TagDropdownPortal({
 
 export function DetailsPanel() {
   const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState } = useLibraryStore()
+  
   const addToast = useToastStore((state) => state.addToast)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -461,12 +462,7 @@ export function DetailsPanel() {
 
   return (
     <aside className="w-80 glass border-l border-charcoal-700/50 flex flex-col overflow-hidden">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={movie.id}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+        <div
           className="flex-1 flex flex-col overflow-y-auto"
         >
           {/* Poster */}
@@ -854,8 +850,7 @@ export function DetailsPanel() {
               </>
             )}
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
