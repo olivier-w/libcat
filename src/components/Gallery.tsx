@@ -116,6 +116,7 @@ export function Gallery() {
     if (activeFilter === 'all') return 'All Movies'
     if (activeFilter === 'untagged') return 'Untagged'
     if (activeFilter === 'watched') return 'Watched'
+    if (activeFilter === 'unwatched') return 'Unwatched'
     if (activeFilter === 'favorites') return 'Favorites'
     const tag = tags.find((t) => t.id === activeFilter)
     return tag ? tag.name : 'Movies'

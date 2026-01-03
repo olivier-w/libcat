@@ -52,7 +52,7 @@ export interface Tag {
   created_at: string
 }
 
-export type FilterType = 'all' | 'untagged' | 'watched' | 'favorites' | number // number = tag id
+export type FilterType = 'all' | 'untagged' | 'watched' | 'unwatched' | 'favorites' | number // number = tag id
 
 export interface ScanProgress {
   current: number

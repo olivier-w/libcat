@@ -15,9 +15,10 @@ interface SidebarProps {
   onAddFolder: () => void
   onOpenSettings: () => void
   onOpenTagManager?: () => void
+  onPickForMe?: () => void
 }
 
-export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: SidebarProps) {
+export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager, onPickForMe }: SidebarProps) {
   const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, updateTagInState, loadMovies } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
@@ -48,6 +49,7 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
     all: movies.length,
     untagged: movies.filter((m) => !m.tags || m.tags.length === 0).length,
     watched: movies.filter((m) => m.watched).length,
+    unwatched: movies.filter((m) => !m.watched).length,
     favorites: movies.filter((m) => m.favorite).length,
   }), [movies])
 
@@ -97,6 +99,16 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
         </svg>
       ),
       count: filterCounts.watched,
+    },
+    {
+      id: 'unwatched',
+      label: 'Unwatched',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+        </svg>
+      ),
+      count: filterCounts.unwatched,
     },
     {
       id: 'favorites',
@@ -344,6 +356,58 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
             </motion.button>
           ))}
         </nav>
+        
+        {/* Pick for Me Button */}
+        {onPickForMe && (
+          <motion.button
+            onClick={onPickForMe}
+            disabled={filterCounts.unwatched === 0}
+            className={`w-full mt-3 flex items-center rounded-xl transition-all min-h-[48px] pick-for-me-btn ${
+              isCollapsed ? 'justify-center px-0' : 'gap-3 px-4'
+            } ${filterCounts.unwatched === 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
+            whileHover={filterCounts.unwatched > 0 ? { scale: 1.02 } : {}}
+            whileTap={filterCounts.unwatched > 0 ? { scale: 0.98 } : {}}
+            title={isCollapsed ? `Pick for Me${filterCounts.unwatched === 0 ? ' (No unwatched movies)' : ''}` : undefined}
+          >
+            {/* Golden envelope icon */}
+            <span className="flex-shrink-0 text-bronze-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </span>
+            <AnimatePresence>
+              {!isCollapsed && (
+                <motion.div 
+                  className="flex-1 text-left"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <span className="text-sm font-semibold text-bronze-400">Pick for Me</span>
+                  <span className="block text-2xs text-smoke-500">Random unwatched movie</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!isCollapsed && (
+              <motion.span 
+                className="text-bronze-400"
+                animate={{ 
+                  rotate: [0, 10, -10, 0],
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  repeatDelay: 3,
+                }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </motion.span>
+            )}
+          </motion.button>
+        )}
       </motion.div>
 
       {/* Divider */}

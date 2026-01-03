@@ -297,6 +297,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       filtered = filtered.filter((movie) => !movie.tags || movie.tags.length === 0)
     } else if (activeFilter === 'watched') {
       filtered = filtered.filter((movie) => movie.watched)
+    } else if (activeFilter === 'unwatched') {
+      filtered = filtered.filter((movie) => !movie.watched)
     } else if (activeFilter === 'favorites') {
       filtered = filtered.filter((movie) => movie.favorite)
     } else if (typeof activeFilter === 'number') {

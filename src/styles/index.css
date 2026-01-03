@@ -524,3 +524,369 @@ input:focus, button:focus-visible, select:focus {
   border-radius: 50%;
   animation: particleFloat 15s linear infinite;
 }
+
+/* ============================================
+   GOLDEN ENVELOPE - Awards Night Experience
+   ============================================ */
+
+/* Dramatic backdrop with vignette */
+.envelope-backdrop {
+  background: radial-gradient(ellipse at 50% 40%, rgba(15, 14, 18, 0.92) 0%, rgba(7, 6, 8, 0.98) 100%);
+  backdrop-filter: blur(20px);
+}
+
+/* Spotlight cone effect */
+.spotlight-cone {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 80%;
+  background: radial-gradient(
+    ellipse 50% 100% at 50% 0%,
+    rgba(217, 149, 110, 0.08) 0%,
+    rgba(217, 149, 110, 0.03) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Golden envelope base */
+.golden-envelope {
+  background: linear-gradient(
+    145deg,
+    #D4A574 0%,
+    #C4956A 15%,
+    #B8885F 30%,
+    #D4A574 50%,
+    #E8C090 65%,
+    #D4A574 80%,
+    #B8885F 100%
+  );
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 15px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Envelope flap */
+.envelope-flap {
+  background: linear-gradient(
+    180deg,
+    #C4956A 0%,
+    #D4A574 30%,
+    #E8C090 60%,
+    #D4A574 100%
+  );
+  transform-origin: bottom center;
+  box-shadow:
+    0 -2px 10px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Wax seal effect */
+.wax-seal {
+  background: radial-gradient(
+    circle at 35% 35%,
+    #E8A882 0%,
+    #D9956E 25%,
+    #C47F5A 50%,
+    #A86B4A 75%,
+    #8C573C 100%
+  );
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Film reel emboss on seal */
+.seal-emboss {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+/* Award card */
+.award-card {
+  background: linear-gradient(
+    180deg,
+    #FAF7F2 0%,
+    #F5F0E8 50%,
+    #EBE5DB 100%
+  );
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.4),
+    0 10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 3px rgba(196, 127, 90, 0.2);
+}
+
+/* Gold border on card */
+.award-card-border {
+  background: linear-gradient(
+    135deg,
+    #D4A574 0%,
+    #E8C090 25%,
+    #D4A574 50%,
+    #B8885F 75%,
+    #D4A574 100%
+  );
+}
+
+/* Film perforation pattern */
+.film-perforations {
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 8px,
+      rgba(30, 29, 34, 0.9) 8px,
+      rgba(30, 29, 34, 0.9) 14px,
+      transparent 14px,
+      transparent 22px
+    );
+}
+
+/* Floating dust particles */
+.dust-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(217, 149, 110, 0.4);
+  border-radius: 50%;
+  animation: dustFloat 8s ease-in-out infinite;
+  filter: blur(0.5px);
+}
+
+@keyframes dustFloat {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-30px) translateX(10px) scale(0.8);
+    opacity: 0.4;
+  }
+  90% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translateY(-60px) translateX(-5px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Envelope hover glow */
+.envelope-glow {
+  filter: drop-shadow(0 0 20px rgba(217, 149, 110, 0.4)) 
+          drop-shadow(0 0 40px rgba(217, 149, 110, 0.25))
+          drop-shadow(0 0 60px rgba(217, 149, 110, 0.15));
+}
+
+/* Seal pulse animation */
+@keyframes sealPulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(217, 149, 110, 0.3),
+      inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.4),
+      0 0 35px rgba(217, 149, 110, 0.5),
+      inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.seal-pulse {
+  animation: sealPulse 2s ease-in-out infinite;
+}
+
+/* Golden flash effect */
+@keyframes goldenFlash {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.golden-flash {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(232, 192, 144, 0.8) 0%,
+    rgba(217, 149, 110, 0.4) 40%,
+    transparent 70%
+  );
+  animation: goldenFlash 0.6s ease-out forwards;
+}
+
+/* Letter reveal animation */
+@keyframes letterReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.letter-reveal {
+  animation: letterReveal 0.08s ease-out forwards;
+}
+
+/* Confetti styles */
+.confetti-piece {
+  position: fixed;
+  pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Star burst for celebration */
+@keyframes starBurst {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.8) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.star-burst {
+  animation: starBurst 1s ease-out forwards;
+}
+
+/* Film strip decoration */
+.film-strip {
+  background: linear-gradient(
+    90deg,
+    #1E1D22 0%,
+    #1E1D22 12%,
+    transparent 12%,
+    transparent 88%,
+    #1E1D22 88%,
+    #1E1D22 100%
+  );
+}
+
+.film-strip::before,
+.film-strip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12%;
+  background-image: 
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(40, 38, 45, 1) 4px,
+      rgba(40, 38, 45, 1) 12px,
+      transparent 12px,
+      transparent 16px
+    );
+}
+
+.film-strip::before {
+  left: 0;
+}
+
+.film-strip::after {
+  right: 0;
+}
+
+/* Typewriter cursor */
+@keyframes typewriterBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typewriter-cursor {
+  animation: typewriterBlink 0.8s infinite;
+}
+
+/* Art deco title styling */
+.art-deco-title {
+  font-family: 'Cabinet Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Poster reveal glow */
+.poster-glow {
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(217, 149, 110, 0.2);
+}
+
+/* Celebration shimmer */
+@keyframes celebrationShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.celebration-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: celebrationShimmer 1.5s ease-in-out;
+}
+
+/* Pick for Me button special styling */
+.pick-for-me-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(217, 149, 110, 0.15) 0%,
+    rgba(196, 127, 90, 0.1) 100%
+  );
+  border: 1px solid rgba(217, 149, 110, 0.2);
+  transition: all 0.3s ease;
+}
+
+.pick-for-me-btn:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(217, 149, 110, 0.25) 0%,
+    rgba(196, 127, 90, 0.15) 100%
+  );
+  border-color: rgba(217, 149, 110, 0.4);
+  box-shadow: 0 0 20px rgba(217, 149, 110, 0.15);
+}
+
+.pick-for-me-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
