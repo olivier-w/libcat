@@ -2,6 +2,7 @@ import { useMemo, useCallback, useRef, useLayoutEffect, useState, type ReactElem
 import { List } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { ContextMenu, useContextMenu, type ContextMenuItem } from './ContextMenu'
 import type { Movie, Tag, SortColumn } from '../types'
 
 // Row height - fixed for virtualization performance
@@ -14,6 +15,7 @@ interface RowData {
   onSelect: (movie: Movie, index: number, shiftKey: boolean, ctrlKey: boolean) => void
   onDoubleClick: (movie: Movie) => void
   onFavoriteToggle: (e: React.MouseEvent, movie: Movie) => void
+  onContextMenu: (e: React.MouseEvent, movie: Movie) => void
   formatDate: (date: string) => string
   formatFileSize: (bytes: number | null) => string
   formatDuration: (seconds: number | null) => string
@@ -29,6 +31,7 @@ function Row({
   onSelect,
   onDoubleClick,
   onFavoriteToggle,
+  onContextMenu,
   formatDate,
   formatFileSize,
   formatDuration,
@@ -60,6 +63,7 @@ function Row({
       style={style}
       onClick={(e) => onSelect(movie, index, e.shiftKey, e.ctrlKey || e.metaKey)}
       onDoubleClick={() => onDoubleClick(movie)}
+      onContextMenu={(e) => onContextMenu(e, movie)}
       className={`movie-list-item grid grid-cols-[40px,1fr,100px,80px,80px,60px] gap-4 px-4 border-b border-smoke-900/20 cursor-pointer transition-all group relative ${
         isSelected 
           ? 'bg-bronze-500/10 hover:bg-bronze-500/15' 
@@ -194,6 +198,8 @@ export function ListView({ sortedMovies }: ListViewProps) {
     selectedMovies, 
     toggleMovieSelection, 
     updateMovieInState,
+    setSelectedMovie,
+    removeMoviesFromState,
     sortColumn,
     sortDirection,
     setSortColumn,
@@ -203,6 +209,23 @@ export function ListView({ sortedMovies }: ListViewProps) {
   const [containerHeight, setContainerHeight] = useState(600)
 
   const selectedIds = useMemo(() => new Set(selectedMovies.map(m => m.id)), [selectedMovies])
+  
+  // Context menu state
+  const movieContextMenu = useContextMenu<Movie>()
+  
+  // Handle context menu open - if multiple movies selected, use those, otherwise use clicked movie
+  const handleContextMenu = useCallback((e: React.MouseEvent, movie: Movie) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // If right-clicked movie is already in selection, keep selection
+    // Otherwise, select just this movie
+    if (!selectedIds.has(movie.id)) {
+      setSelectedMovie(movie)
+    }
+    
+    movieContextMenu.open(e, movie)
+  }, [selectedIds, setSelectedMovie, movieContextMenu])
 
   useLayoutEffect(() => {
     const updateHeight = () => {
@@ -325,11 +348,135 @@ export function ListView({ sortedMovies }: ListViewProps) {
     onSelect: handleSelect,
     onDoubleClick: handleDoubleClick,
     onFavoriteToggle: handleFavoriteToggle,
+    onContextMenu: handleContextMenu,
     formatDate,
     formatFileSize,
     formatDuration,
     getFileName,
-  }), [sortedMovies, selectedIds, handleSelect, handleDoubleClick, handleFavoriteToggle, formatDate, formatFileSize, formatDuration, getFileName])
+  }), [sortedMovies, selectedIds, handleSelect, handleDoubleClick, handleFavoriteToggle, handleContextMenu, formatDate, formatFileSize, formatDuration, getFileName])
+
+  // Get the movies to operate on (selection or single clicked movie)
+  const targetMovies = selectedMovies.length > 1 ? selectedMovies : 
+    (movieContextMenu.state.data ? [movieContextMenu.state.data] : [])
+  const isMultiSelect = targetMovies.length > 1
+  
+  // Context menu actions
+  const handlePlay = useCallback(() => {
+    if (targetMovies.length > 0) {
+      window.api.playVideo(targetMovies[0].file_path)
+    }
+  }, [targetMovies])
+  
+  const handleToggleWatched = useCallback(async () => {
+    const newWatched = !targetMovies.every(m => m.watched)
+    for (const movie of targetMovies) {
+      try {
+        await window.api.updateMovie(movie.id, { watched: newWatched })
+        updateMovieInState(movie.id, { watched: newWatched })
+      } catch (error) {
+        console.error('Failed to update watched status:', error)
+      }
+    }
+  }, [targetMovies, updateMovieInState])
+  
+  const handleToggleFavorite = useCallback(async () => {
+    const newFavorite = !targetMovies.every(m => m.favorite)
+    for (const movie of targetMovies) {
+      try {
+        await window.api.updateMovie(movie.id, { favorite: newFavorite })
+        updateMovieInState(movie.id, { favorite: newFavorite })
+      } catch (error) {
+        console.error('Failed to update favorite status:', error)
+      }
+    }
+  }, [targetMovies, updateMovieInState])
+  
+  const handleShowInExplorer = useCallback(() => {
+    if (targetMovies.length > 0) {
+      window.api.openInExplorer(targetMovies[0].file_path)
+    }
+  }, [targetMovies])
+  
+  const handleRemoveFromLibrary = useCallback(async () => {
+    const count = targetMovies.length
+    const message = count > 1
+      ? `Are you sure you want to remove ${count} movies from your library?`
+      : `Are you sure you want to remove "${targetMovies[0]?.title || 'this movie'}" from your library?`
+    
+    if (!confirm(message)) return
+    
+    const ids = targetMovies.map(m => m.id)
+    try {
+      for (const id of ids) {
+        await window.api.deleteMovie(id)
+      }
+      removeMoviesFromState(ids)
+    } catch (error) {
+      console.error('Failed to remove movies:', error)
+    }
+  }, [targetMovies, removeMoviesFromState])
+  
+  // Build context menu items
+  const contextMenuItems: ContextMenuItem[] = [
+    {
+      id: 'play',
+      label: 'Play',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      onClick: handlePlay,
+      disabled: isMultiSelect,
+      divider: true,
+    },
+    {
+      id: 'watched',
+      label: targetMovies.every(m => m.watched) ? 'Mark as Unwatched' : 'Mark as Watched',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+      ),
+      onClick: handleToggleWatched,
+    },
+    {
+      id: 'favorite',
+      label: targetMovies.every(m => m.favorite) ? 'Remove from Favorites' : 'Add to Favorites',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      ),
+      onClick: handleToggleFavorite,
+      divider: true,
+    },
+    {
+      id: 'show-in-explorer',
+      label: 'Show in Explorer',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      ),
+      onClick: handleShowInExplorer,
+      disabled: isMultiSelect,
+      divider: true,
+    },
+    {
+      id: 'remove',
+      label: isMultiSelect ? `Remove ${targetMovies.length} Movies` : 'Remove from Library',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      ),
+      onClick: handleRemoveFromLibrary,
+      danger: true,
+    },
+  ]
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
@@ -397,6 +544,20 @@ export function ListView({ sortedMovies }: ListViewProps) {
           </div>
         )}
       </div>
+      
+      {/* Movie Context Menu */}
+      {movieContextMenu.state.isOpen && movieContextMenu.state.data && (
+        <ContextMenu
+          position={movieContextMenu.state.position}
+          onClose={movieContextMenu.close}
+          items={contextMenuItems}
+          header={isMultiSelect ? (
+            <span className="text-xs text-smoke-400 font-medium">
+              {targetMovies.length} movies selected
+            </span>
+          ) : undefined}
+        />
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import type { FilterType, Tag } from '../types'
 import { fuzzySearchTags } from '../utils/fuzzySearch'
 import { SearchBar } from './SearchBar'
 import { ColorPicker } from './ColorPicker'
+import { ContextMenu, useContextMenu, type ContextMenuItem } from './ContextMenu'
 
 export const PRESET_COLORS = [
   '#F4A261', '#D46B64', '#6B8F71', '#5B8FA8', '#9B7BB8',
@@ -34,6 +35,9 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
   const editInputRef = useRef<HTMLInputElement>(null)
   
   const filteredTags = fuzzySearchTags(tags, tagSearchQuery)
+  
+  // Context menu for tags
+  const tagContextMenu = useContextMenu<Tag>()
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -598,14 +602,15 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
                 <div
                   onClick={() => setActiveFilter(tag.id)}
                   onDoubleClick={(e) => !isCollapsed && handleStartEditTag(tag, e)}
+                  onContextMenu={(e) => !isCollapsed && tagContextMenu.open(e, tag)}
                   className={`w-full flex items-center rounded-lg transition-colors duration-150 min-h-[44px] ${
                     isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
                   } ${
                     activeFilter === tag.id
                       ? 'bg-bronze-500/10 text-bronze-400 sidebar-item-active'
                       : 'text-smoke-300 hover:bg-obsidian-300/30 hover:text-pearl-300 cursor-pointer'
-                  } group`}
-                  title={isCollapsed ? `${tag.name} (${getTagCount(tag.id)})` : 'Double-click to edit'}
+                  }`}
+                  title={isCollapsed ? `${tag.name} (${getTagCount(tag.id)})` : 'Right-click for options'}
                 >
                   {/* Tag Color Dot */}
                   <div
@@ -622,42 +627,14 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
                         {tag.name}
                       </span>
                       
-                      {/* Count & Actions - swap on hover for perfect alignment */}
-                      <div className="relative flex items-center justify-end">
-                        {/* Count badge - fades out on hover */}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium tabular-nums transition-all duration-200 group-hover:opacity-0 group-hover:scale-90 ${
-                          activeFilter === tag.id
-                            ? 'bg-bronze-500/20 text-bronze-400'
-                            : 'bg-obsidian-300/50 text-smoke-500'
-                        }`}>
-                          {getTagCount(tag.id)}
-                        </span>
-                        
-                        {/* Action buttons - fade in on hover, overlay the count */}
-                        <div className="absolute inset-0 flex items-center justify-end gap-1 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200">
-                          <button
-                            onClick={(e) => handleStartEditTag(tag, e)}
-                            className="px-2 py-1.5 rounded-md flex items-center justify-center text-smoke-400 hover:text-bronze-400 hover:bg-bronze-500/20 transition-colors"
-                            title="Edit tag"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteTag(tag.id)
-                            }}
-                            className="px-2 py-1.5 rounded-md flex items-center justify-center text-smoke-400 hover:text-cinnabar-400 hover:bg-cinnabar-500/20 transition-colors"
-                            title="Delete tag"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
+                      {/* Count badge - always visible now */}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium tabular-nums ${
+                        activeFilter === tag.id
+                          ? 'bg-bronze-500/20 text-bronze-400'
+                          : 'bg-obsidian-300/50 text-smoke-500'
+                      }`}>
+                        {getTagCount(tag.id)}
+                      </span>
                     </>
                   )}
                 </div>
@@ -713,6 +690,53 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: Sideb
           </AnimatePresence>
         </motion.button>
       </motion.div>
+      
+      {/* Tag Context Menu */}
+      {tagContextMenu.state.isOpen && tagContextMenu.state.data && (
+        <ContextMenu
+          position={tagContextMenu.state.position}
+          onClose={tagContextMenu.close}
+          items={(() => {
+            const tag = tagContextMenu.state.data
+            const menuItems: ContextMenuItem[] = [
+              {
+                id: 'edit',
+                label: 'Edit Tag',
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                ),
+                onClick: () => handleStartEditTag(tag),
+              },
+              {
+                id: 'delete',
+                label: 'Delete Tag',
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                ),
+                onClick: () => handleDeleteTag(tag.id),
+                danger: true,
+                divider: true,
+              },
+              {
+                id: 'filter',
+                label: 'Filter by Tag',
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                ),
+                onClick: () => setActiveFilter(tag.id),
+                disabled: activeFilter === tag.id,
+              },
+            ]
+            return menuItems
+          })()}
+        />
+      )}
     </motion.aside>
   )
 }

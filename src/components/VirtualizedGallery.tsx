@@ -1,7 +1,8 @@
-import { memo, useState, useRef, useLayoutEffect, forwardRef, type CSSProperties, type ReactElement } from 'react'
+import { memo, useState, useRef, useLayoutEffect, useCallback, type CSSProperties, type ReactElement } from 'react'
 import { Grid, type CellComponentProps } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { ContextMenu, useContextMenu, type ContextMenuItem } from './ContextMenu'
 import type { Movie } from '../types'
 
 // Grid dimensions - matching the CSS grid minmax(180px, 1fr) + gap
@@ -20,23 +21,9 @@ interface CellData {
   columnWidth: number
   cardHeight: number
   horizontalOffset: number
+  onContextMenu: (e: React.MouseEvent, movie: Movie) => void
 }
 
-// Inner element with padding for the scroll content
-const InnerElement = forwardRef<HTMLDivElement, { style: CSSProperties; children?: React.ReactNode }>(
-  ({ style, ...rest }, ref) => (
-    <div
-      ref={ref}
-      style={{
-        ...style,
-        // Extend scroll content to include padding space
-        width: `${parseFloat(String(style.width)) + PADDING * 2}px`,
-        height: `${parseFloat(String(style.height)) + PADDING * 2}px`,
-      }}
-      {...rest}
-    />
-  )
-)
 
 // Cell component for the Grid
 function CellComponent({
@@ -48,6 +35,7 @@ function CellComponent({
   columnWidth,
   cardHeight,
   horizontalOffset,
+  onContextMenu,
 }: CellComponentProps<CellData>): ReactElement | null {
   const { selectedIds, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -113,12 +101,19 @@ function CellComponent({
     height: cardHeight,
   }
   
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onContextMenu(e, movie)
+  }
+  
   return (
     <div style={adjustedStyle}>
       <div style={innerStyle}>
         <motion.div
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
+          onContextMenu={handleContextMenu}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           className={`movie-card relative w-full h-full rounded-xl overflow-hidden cursor-pointer border border-smoke-900/30 bg-obsidian-400/30 ${
@@ -303,6 +298,24 @@ const MemoizedCell = memo(CellComponent)
 export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const { selectedMovies, selectedIds, setSelectedMovie, updateMovieInState, removeMovieFromState, removeMoviesFromState } = useLibraryStore()
+  
+  // Context menu state
+  const movieContextMenu = useContextMenu<Movie>()
+  
+  // Handle context menu open - if multiple movies selected, use those, otherwise use clicked movie
+  const handleContextMenu = useCallback((e: React.MouseEvent, movie: Movie) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // If right-clicked movie is already in selection, keep selection
+    // Otherwise, select just this movie
+    if (!selectedIds.has(movie.id)) {
+      setSelectedMovie(movie)
+    }
+    
+    movieContextMenu.open(e, movie)
+  }, [selectedIds, setSelectedMovie, movieContextMenu])
   
   // Use useLayoutEffect to measure before paint
   useLayoutEffect(() => {
@@ -342,12 +355,16 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
   // Calculate responsive column count based on available width
   const columnCount = Math.max(1, Math.floor((contentWidth + ITEM_GAP) / (ITEM_MIN_WIDTH + ITEM_GAP)))
   const columnWidth = contentWidth / columnCount
-  const rowCount = Math.ceil(movies.length / columnCount)
+  const actualRowCount = Math.ceil(movies.length / columnCount)
   
   // Calculate dynamic row height to maintain 2:3 poster aspect ratio
   const cardWidth = columnWidth - ITEM_GAP
   const cardHeight = cardWidth * POSTER_ASPECT_RATIO
   const rowHeight = cardHeight + ITEM_GAP
+  
+  // Add extra row to account for top/bottom padding in scroll area
+  // This ensures scrolling to bottom shows the last row with proper padding
+  const rowCount = actualRowCount + 1
   
   // Horizontal offset for left padding
   const horizontalOffset = PADDING
@@ -358,7 +375,131 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
     columnWidth,
     cardHeight,
     horizontalOffset,
+    onContextMenu: handleContextMenu,
   }
+  
+  // Get the movies to operate on (selection or single clicked movie)
+  const targetMovies = selectedMovies.length > 1 ? selectedMovies : 
+    (movieContextMenu.state.data ? [movieContextMenu.state.data] : [])
+  const isMultiSelect = targetMovies.length > 1
+  
+  // Context menu actions
+  const handlePlay = useCallback(() => {
+    if (targetMovies.length > 0) {
+      window.api.playVideo(targetMovies[0].file_path)
+    }
+  }, [targetMovies])
+  
+  const handleToggleWatched = useCallback(async () => {
+    const newWatched = !targetMovies.every(m => m.watched)
+    for (const movie of targetMovies) {
+      try {
+        await window.api.updateMovie(movie.id, { watched: newWatched })
+        updateMovieInState(movie.id, { watched: newWatched })
+      } catch (error) {
+        console.error('Failed to update watched status:', error)
+      }
+    }
+  }, [targetMovies, updateMovieInState])
+  
+  const handleToggleFavorite = useCallback(async () => {
+    const newFavorite = !targetMovies.every(m => m.favorite)
+    for (const movie of targetMovies) {
+      try {
+        await window.api.updateMovie(movie.id, { favorite: newFavorite })
+        updateMovieInState(movie.id, { favorite: newFavorite })
+      } catch (error) {
+        console.error('Failed to update favorite status:', error)
+      }
+    }
+  }, [targetMovies, updateMovieInState])
+  
+  const handleShowInExplorer = useCallback(() => {
+    if (targetMovies.length > 0) {
+      window.api.openInExplorer(targetMovies[0].file_path)
+    }
+  }, [targetMovies])
+  
+  const handleRemoveFromLibrary = useCallback(async () => {
+    const count = targetMovies.length
+    const message = count > 1
+      ? `Are you sure you want to remove ${count} movies from your library?`
+      : `Are you sure you want to remove "${targetMovies[0]?.title || 'this movie'}" from your library?`
+    
+    if (!confirm(message)) return
+    
+    const ids = targetMovies.map(m => m.id)
+    try {
+      for (const id of ids) {
+        await window.api.deleteMovie(id)
+      }
+      removeMoviesFromState(ids)
+    } catch (error) {
+      console.error('Failed to remove movies:', error)
+    }
+  }, [targetMovies, removeMoviesFromState])
+  
+  // Build context menu items
+  const contextMenuItems: ContextMenuItem[] = [
+    {
+      id: 'play',
+      label: 'Play',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      onClick: handlePlay,
+      disabled: isMultiSelect,
+      divider: true,
+    },
+    {
+      id: 'watched',
+      label: targetMovies.every(m => m.watched) ? 'Mark as Unwatched' : 'Mark as Watched',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+      ),
+      onClick: handleToggleWatched,
+    },
+    {
+      id: 'favorite',
+      label: targetMovies.every(m => m.favorite) ? 'Remove from Favorites' : 'Add to Favorites',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      ),
+      onClick: handleToggleFavorite,
+      divider: true,
+    },
+    {
+      id: 'show-in-explorer',
+      label: 'Show in Explorer',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      ),
+      onClick: handleShowInExplorer,
+      disabled: isMultiSelect,
+      divider: true,
+    },
+    {
+      id: 'remove',
+      label: isMultiSelect ? `Remove ${targetMovies.length} Movies` : 'Remove from Library',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      ),
+      onClick: handleRemoveFromLibrary,
+      danger: true,
+    },
+  ]
   
   return (
     <div 
@@ -380,7 +521,20 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
           width={dimensions.width}
           height={dimensions.height}
           overscanCount={2}
-          innerElementType={InnerElement}
+        />
+      )}
+      
+      {/* Movie Context Menu */}
+      {movieContextMenu.state.isOpen && movieContextMenu.state.data && (
+        <ContextMenu
+          position={movieContextMenu.state.position}
+          onClose={movieContextMenu.close}
+          items={contextMenuItems}
+          header={isMultiSelect ? (
+            <span className="text-xs text-smoke-400 font-medium">
+              {targetMovies.length} movies selected
+            </span>
+          ) : undefined}
         />
       )}
     </div>
