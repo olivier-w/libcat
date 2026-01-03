@@ -399,7 +399,7 @@ export function DetailsPanel() {
     if (!tagSearchQuery.trim()) return
     
     try {
-      const newTag = await window.api.createTag(tagSearchQuery.trim(), '#C47F5A')
+      const newTag = await window.api.createTag(tagSearchQuery.trim(), '#f4a261')
       addTagToState(newTag)
       await window.api.addTagToMovie(movie.id, newTag.id)
       await loadMovies()
@@ -949,7 +949,7 @@ function BulkActionsPanel() {
     if (!bulkTagSearchQuery.trim()) return
     
     try {
-      const newTag = await window.api.createTag(bulkTagSearchQuery.trim(), '#C47F5A')
+      const newTag = await window.api.createTag(bulkTagSearchQuery.trim(), '#f4a261')
       addTagToState(newTag)
       for (const movie of selectedMovies) {
         await window.api.addTagToMovie(movie.id, newTag.id)

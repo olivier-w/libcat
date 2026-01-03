@@ -38,7 +38,7 @@ function App() {
   // Keyboard shortcut: Ctrl+I / Cmd+I to add folder to library
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'i') {
         e.preventDefault()
         if (activeProfile && !isScanning) {
           handleAddFolder()
