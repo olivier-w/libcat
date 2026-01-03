@@ -47,7 +47,6 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [displayedTitle, setDisplayedTitle] = useState('')
   const [confetti, setConfetti] = useState<ReturnType<typeof generateConfetti>>([])
-  const [imageLoaded, setImageLoaded] = useState(false)
   
   const dustParticles = useMemo(() => generateDust(8), []) // Reduced for 60fps
   
@@ -68,13 +67,12 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
       setSelectedMovie(null)
       setDisplayedTitle('')
       setConfetti([])
-      setImageLoaded(false)
       
       // Pick movie immediately but don't show it yet
       const movie = pickRandomMovie()
       if (movie) {
         setSelectedMovie(movie)
-        // Preload image using the same logic as getPosterUrl
+        // Preload image into browser cache
         if (movie.tmdb_poster_path) {
           const img = new Image()
           if (movie.tmdb_poster_path.startsWith('/')) {
@@ -82,15 +80,9 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
           } else {
             img.src = `local-file:///${movie.tmdb_poster_path.replace(/\\/g, '/')}`
           }
-          img.onload = () => setImageLoaded(true)
-          img.onerror = () => setImageLoaded(true) // Still show even if image fails
         } else if (movie.thumbnail_path) {
           const img = new Image()
           img.src = `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
-          img.onload = () => setImageLoaded(true)
-          img.onerror = () => setImageLoaded(true)
-        } else {
-          setImageLoaded(true)
         }
       }
       
@@ -139,12 +131,11 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
     setPhase('entering')
     setDisplayedTitle('')
     setConfetti([])
-    setImageLoaded(false)
     
     const movie = pickRandomMovie()
     if (movie) {
       setSelectedMovie(movie)
-      // Preload image using the same logic as getPosterUrl
+      // Preload image into browser cache
       if (movie.tmdb_poster_path) {
         const img = new Image()
         if (movie.tmdb_poster_path.startsWith('/')) {
@@ -152,15 +143,9 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         } else {
           img.src = `local-file:///${movie.tmdb_poster_path.replace(/\\/g, '/')}`
         }
-        img.onload = () => setImageLoaded(true)
-        img.onerror = () => setImageLoaded(true)
       } else if (movie.thumbnail_path) {
         const img = new Image()
         img.src = `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
-        img.onload = () => setImageLoaded(true)
-        img.onerror = () => setImageLoaded(true)
-      } else {
-        setImageLoaded(true)
       }
     }
     
