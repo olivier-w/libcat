@@ -89,7 +89,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
           img.onerror = () => setImageLoaded(true) // Still show even if image fails
         } else if (movie.thumbnail_path) {
           const img = new Image()
-          img.src = `thumb://${movie.thumbnail_path}`
+          img.src = `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
           img.onload = () => setImageLoaded(true)
           img.onerror = () => setImageLoaded(true)
         } else {
@@ -159,7 +159,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         img.onerror = () => setImageLoaded(true)
       } else if (movie.thumbnail_path) {
         const img = new Image()
-        img.src = `thumb://${movie.thumbnail_path}`
+        img.src = `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
         img.onload = () => setImageLoaded(true)
         img.onerror = () => setImageLoaded(true)
       } else {
@@ -214,7 +214,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
       }
     }
     if (movie.thumbnail_path) {
-      return `thumb://${movie.thumbnail_path}`
+      return `local-file:///${movie.thumbnail_path.replace(/\\/g, '/')}`
     }
     return null
   }
