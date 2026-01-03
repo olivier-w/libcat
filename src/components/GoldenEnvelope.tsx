@@ -42,7 +42,7 @@ const generateDust = (count: number) => {
 }
 
 export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelopeProps) {
-  const { movies } = useLibraryStore()
+  const { filteredMovies } = useLibraryStore()
   const [phase, setPhase] = useState<Phase>('entering')
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [displayedTitle, setDisplayedTitle] = useState('')
@@ -51,17 +51,15 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
   
   const dustParticles = useMemo(() => generateDust(8), []) // Reduced for 60fps
   
-  // Get unwatched movies from the current filtered set
-  const unwatchedMovies = useMemo(() => {
-    return movies.filter(m => !m.watched)
-  }, [movies])
+  // Use the current filtered movies from the store
+  const availableMovies = filteredMovies
   
   // Pick a random movie
   const pickRandomMovie = useCallback(() => {
-    if (unwatchedMovies.length === 0) return null
-    const randomIndex = Math.floor(Math.random() * unwatchedMovies.length)
-    return unwatchedMovies[randomIndex]
-  }, [unwatchedMovies])
+    if (availableMovies.length === 0) return null
+    const randomIndex = Math.floor(Math.random() * availableMovies.length)
+    return availableMovies[randomIndex]
+  }, [availableMovies])
   
   // Reset state when modal opens
   useEffect(() => {
@@ -708,7 +706,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         </motion.button>
         
         {/* No unwatched movies message */}
-        {unwatchedMovies.length === 0 && (
+        {availableMovies.length === 0 && (
           <motion.div
             className="text-center"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -721,10 +719,10 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
               </svg>
             </div>
             <h3 className="text-xl font-heading font-semibold text-pearl-200 mb-2">
-              All Caught Up!
+              No Movies Available
             </h3>
             <p className="text-smoke-400 max-w-xs mx-auto">
-              You've watched all the movies in your library. Add more movies or unmark some as watched to get new picks.
+              No movies match the current filter. Try adjusting your filters or adding more movies to your library.
             </p>
             <motion.button
               className="mt-6 px-6 py-3 rounded-xl btn-secondary"
