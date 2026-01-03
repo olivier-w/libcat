@@ -648,7 +648,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         <AnimatePresence>
           {phase === 'complete' && (
             <motion.div
-              className="fixed left-1/2 -translate-x-1/2 flex gap-4"
+              className="fixed left-1/2 -translate-x-1/2 flex gap-4 justify-center"
               style={{ top: 'calc(50% + 340px)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -677,15 +677,6 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Roll Again
-              </motion.button>
-              
-              <motion.button
-                className="px-6 py-3 rounded-xl btn-ghost text-base"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onClose}
-              >
-                Close
               </motion.button>
             </motion.div>
           )}
