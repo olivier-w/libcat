@@ -11,34 +11,33 @@ interface GoldenEnvelopeProps {
 
 type Phase = 'entering' | 'waiting' | 'opening' | 'revealing' | 'celebrating' | 'complete'
 
-// Generate random confetti pieces - burst from center and fall
+// Generate random confetti pieces - optimized for 60fps with fewer pieces
 const generateConfetti = (count: number) => {
   return Array.from({ length: count }, (_, i) => {
-    const angle = (Math.random() * Math.PI * 2) // Random angle in radians
-    const velocity = 150 + Math.random() * 250 // Random velocity
+    const angle = (Math.random() * Math.PI * 2)
+    const velocity = 120 + Math.random() * 180 // Slightly reduced velocity
     return {
       id: i,
-      delay: Math.random() * 0.2,
+      delay: Math.random() * 0.15,
       rotation: Math.random() * 360,
-      color: ['#D9956E', '#E8A882', '#C47F5A', '#F2D4C0', '#FFD700', '#FFF8DC', '#FFFFFF'][Math.floor(Math.random() * 7)],
-      size: 6 + Math.random() * 8,
-      shape: ['square', 'circle', 'star'][Math.floor(Math.random() * 3)] as 'square' | 'circle' | 'star',
-      // Initial burst velocity (outward from center)
+      color: ['#D9956E', '#E8A882', '#C47F5A', '#F2D4C0', '#FFD700'][Math.floor(Math.random() * 5)],
+      size: 6 + Math.random() * 6,
+      shape: ['square', 'circle'][Math.floor(Math.random() * 2)] as 'square' | 'circle', // Removed star for perf
       velocityX: Math.cos(angle) * velocity,
-      velocityY: Math.sin(angle) * velocity * 0.6 - 100, // Bias upward initially
+      velocityY: Math.sin(angle) * velocity * 0.6 - 80,
     }
   })
 }
 
-// Generate dust particles
+// Generate dust particles - reduced count for performance
 const generateDust = (count: number) => {
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
-    y: Math.random() * 100,
-    delay: Math.random() * 5,
-    duration: 5 + Math.random() * 5,
-    size: 2 + Math.random() * 3,
+    y: 50 + Math.random() * 50, // Start lower for visibility
+    delay: Math.random() * 3,
+    duration: 4 + Math.random() * 3,
+    size: 2 + Math.random() * 2,
   }))
 }
 
@@ -50,7 +49,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
   const [confetti, setConfetti] = useState<ReturnType<typeof generateConfetti>>([])
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  const dustParticles = useMemo(() => generateDust(15), [])
+  const dustParticles = useMemo(() => generateDust(8), []) // Reduced for 60fps
   
   // Get unwatched movies from the current filtered set
   const unwatchedMovies = useMemo(() => {
@@ -97,8 +96,8 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         }
       }
       
-      // Transition to waiting phase after entrance
-      const timer = setTimeout(() => setPhase('waiting'), 800)
+      // Transition to waiting phase after entrance animation completes
+      const timer = setTimeout(() => setPhase('waiting'), 600)
       return () => clearTimeout(timer)
     }
   }, [isOpen, pickRandomMovie])
@@ -117,7 +116,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
           clearInterval(typeInterval)
           // Move to celebration after title is complete
           setTimeout(() => {
-            setConfetti(generateConfetti(80))
+            setConfetti(generateConfetti(50)) // Reduced for 60fps performance
             setPhase('celebrating')
             setTimeout(() => setPhase('complete'), 2000)
           }, 300)
@@ -233,9 +232,9 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         {/* Spotlight cone */}
         <div className="spotlight-cone" />
         
-        {/* Dust particles */}
+        {/* Dust particles - using CSS animation for 60fps */}
         {dustParticles.map((particle) => (
-          <motion.div
+          <div
             key={particle.id}
             className="dust-particle"
             style={{
@@ -243,36 +242,13 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
               top: `${particle.y}%`,
               width: particle.size,
               height: particle.size,
-            }}
-            animate={{
-              y: [-20, -60],
-              x: [0, (Math.random() - 0.5) * 40],
-              opacity: [0, 0.6, 0],
-            }}
-            transition={{
-              duration: particle.duration,
-              delay: particle.delay,
-              repeat: Infinity,
-              ease: 'easeInOut',
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
             }}
           />
         ))}
         
-        {/* Film strip decorations */}
-        <motion.div
-          className="absolute left-0 top-0 bottom-0 w-16 film-strip opacity-30"
-          initial={{ x: -100 }}
-          animate={{ x: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
-        />
-        <motion.div
-          className="absolute right-0 top-0 bottom-0 w-16 film-strip opacity-30"
-          initial={{ x: 100 }}
-          animate={{ x: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
-        />
-        
-        {/* Confetti - bursts from center */}
+        {/* Confetti - bursts from center - optimized for 60fps */}
         {confetti.map((piece) => (
           <motion.div
             key={piece.id}
@@ -282,33 +258,29 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
               top: '40%',
               width: piece.size,
               height: piece.size,
-              backgroundColor: piece.shape === 'star' ? 'transparent' : piece.color,
+              backgroundColor: piece.color,
               borderRadius: piece.shape === 'circle' ? '50%' : '2px',
-              clipPath: piece.shape === 'star' 
-                ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)'
-                : 'none',
-              boxShadow: piece.shape === 'star' ? `inset 0 0 0 ${piece.size}px ${piece.color}` : 'none',
               zIndex: 100,
+              willChange: 'transform, opacity',
             }}
             initial={{ 
               x: 0, 
               y: 0, 
               rotate: 0, 
-              opacity: 1, 
+              opacity: 0, 
               scale: 0 
             }}
             animate={{
-              x: [0, piece.velocityX * 0.3, piece.velocityX],
-              y: [0, piece.velocityY, piece.velocityY + 400 + Math.random() * 200],
-              rotate: [0, piece.rotation + 180, piece.rotation + 720],
+              x: piece.velocityX,
+              y: piece.velocityY + 350,
+              rotate: piece.rotation + 360,
               opacity: [0, 1, 1, 0],
-              scale: [0, 1.2, 1, 0.3],
+              scale: [0, 1, 1, 0.5],
             }}
             transition={{
-              duration: 2.5 + Math.random() * 0.5,
+              duration: 2,
               delay: piece.delay,
-              ease: [0.25, 0.1, 0.25, 1],
-              times: [0, 0.1, 0.7, 1],
+              ease: 'easeOut',
             }}
           />
         ))}
@@ -337,23 +309,13 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
             {(phase === 'entering' || phase === 'waiting' || phase === 'opening') && (
               <motion.div
                 key="envelope"
-                className={`relative cursor-pointer ${phase === 'waiting' ? 'envelope-glow' : ''}`}
-                initial={{ y: -100, opacity: 0, rotateX: -15 }}
-                animate={{ 
-                  y: 0, 
-                  opacity: 1, 
-                  rotateX: 0,
-                  scale: phase === 'waiting' ? [1, 1.02, 1] : 1,
-                }}
-                exit={{ y: -50, opacity: 0, scale: 0.9 }}
-                transition={{ 
-                  type: 'spring', 
-                  stiffness: 100, 
-                  damping: 15,
-                  scale: { repeat: phase === 'waiting' ? Infinity : 0, duration: 2 }
-                }}
+                className="relative cursor-pointer envelope-container"
+                data-waiting={phase === 'waiting' ? 'true' : 'false'}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
                 onClick={handleEnvelopeClick}
-                style={{ perspective: '1000px' }}
               >
                 {/* Envelope container */}
                 <div className="relative" style={{ width: '360px', height: '240px' }}>
@@ -436,11 +398,12 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                       height: '140px',
                       transformOrigin: 'center top', // Hinge at top edge (where flap connects to envelope)
                       zIndex: phase === 'opening' ? 1 : 5, // Go behind envelope when open
+                      willChange: 'transform',
                     }}
                     animate={{
                       scaleY: phase === 'opening' ? -1 : 1, // Flip vertically around top edge
                     }}
-                    transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                   >
                     <div 
                       className="absolute w-full h-full"
@@ -461,13 +424,13 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                     </div>
                   </motion.div>
                   
-                  {/* Wax seal - positioned at tip of flap (140px from top, centered) */}
+                  {/* Wax seal - positioned higher on the envelope for better visual balance */}
                   <motion.div
                     className={`absolute rounded-full flex items-center justify-center ${phase === 'waiting' ? 'seal-pulse' : ''}`}
                     style={{ 
                       width: '72px', 
                       height: '72px', 
-                      top: '104px', // Position at flap tip (140px) - half seal height (36px) = 104px
+                      top: '84px', // Moved higher for better visual centering on envelope face
                       left: '144px', // (360 - 72) / 2 = 144 for perfect center
                       zIndex: 30,
                       background: 'radial-gradient(circle at 30% 30%, #E8A882 0%, #D9956E 30%, #C47F5A 60%, #A86B4A 100%)',
@@ -525,7 +488,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                   {/* Card content */}
                   <div 
                     className="award-card relative rounded-xl p-6 flex flex-col items-center"
-                    style={{ width: '380px', minHeight: '480px' }}
+                    style={{ width: '400px', minHeight: '520px', maxHeight: '85vh', overflowY: 'auto' }}
                   >
                     {/* Decorative corner flourishes */}
                     <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-bronze-500/30 rounded-tl" />
@@ -565,7 +528,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                     
                     {/* Movie poster - clickable to select */}
                     <motion.div
-                      className="relative w-48 h-72 rounded-lg overflow-hidden poster-glow cursor-pointer"
+                      className="relative w-48 h-72 rounded-lg overflow-hidden poster-glow cursor-pointer flex-shrink-0"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ 
                         opacity: phase === 'celebrating' || phase === 'complete' ? 1 : 0,
@@ -603,81 +566,133 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                         </span>
                       </div>
                     </motion.div>
+                    
+                    {/* Genres */}
+                    {selectedMovie.tmdb_genres && (
+                      <motion.div
+                        className="flex flex-wrap justify-center gap-2 mt-4 max-w-full"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ 
+                          opacity: phase === 'celebrating' || phase === 'complete' ? 1 : 0,
+                          y: phase === 'celebrating' || phase === 'complete' ? 0 : 10,
+                        }}
+                        transition={{ delay: 0.45, duration: 0.3 }}
+                      >
+                        {(() => {
+                          try {
+                            // Parse JSON array if it's in that format
+                            const genres = selectedMovie.tmdb_genres.startsWith('[') 
+                              ? JSON.parse(selectedMovie.tmdb_genres) 
+                              : selectedMovie.tmdb_genres.split(',').map(g => g.trim())
+                            return genres.slice(0, 3).map((genre: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="px-2.5 py-1 text-xs font-medium rounded-full bg-bronze-600/10 text-bronze-700 border border-bronze-500/20"
+                              >
+                                {genre}
+                              </span>
+                            ))
+                          } catch {
+                            return null
+                          }
+                        })()}
+                      </motion.div>
+                    )}
+                    
+                    {/* Overview */}
+                    {selectedMovie.tmdb_overview && (
+                      <motion.p
+                        className="mt-4 text-sm text-obsidian-500/80 text-center leading-relaxed max-w-[340px] line-clamp-3"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ 
+                          opacity: phase === 'complete' ? 1 : 0,
+                          y: phase === 'complete' ? 0 : 10,
+                        }}
+                        transition={{ delay: 0.5, duration: 0.3 }}
+                      >
+                        {selectedMovie.tmdb_overview}
+                      </motion.p>
+                    )}
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
           
-          {/* Instruction text */}
-          <AnimatePresence>
-            {phase === 'waiting' && (
-              <motion.div
-                className="mt-8 text-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: 0.3 }}
-              >
-                <p className="text-pearl-300/50 text-sm uppercase tracking-[0.2em] mb-1">
-                  And the selection is...
-                </p>
-                <motion.p 
-                  className="text-pearl-200/80 text-lg font-medium tracking-wide"
-                  animate={{ opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  Click to reveal
-                </motion.p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          {/* Action buttons */}
-          <AnimatePresence>
-            {phase === 'complete' && (
-              <motion.div
-                className="flex gap-4 mt-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <motion.button
-                  className="px-6 py-3 rounded-xl btn-primary flex items-center gap-2 text-base font-semibold"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handlePlayMovie}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                  Watch Now
-                </motion.button>
-                
-                <motion.button
-                  className="px-6 py-3 rounded-xl btn-secondary flex items-center gap-2 text-base"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRollAgain}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Roll Again
-                </motion.button>
-                
-                <motion.button
-                  className="px-6 py-3 rounded-xl btn-ghost text-base"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                >
-                  Close
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
+        
+        {/* Instruction text - positioned fixed to prevent layout shift */}
+        <AnimatePresence>
+          {phase === 'waiting' && (
+            <motion.div
+              className="fixed left-1/2 -translate-x-1/2 text-center"
+              style={{ top: 'calc(50% + 160px)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-pearl-300/50 text-sm uppercase tracking-[0.2em] mb-1 whitespace-nowrap">
+                And the selection is...
+              </p>
+              <motion.p 
+                className="text-pearl-200/80 text-lg font-medium tracking-wide"
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                Click to reveal
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Action buttons - positioned fixed to prevent layout shift */}
+        <AnimatePresence>
+          {phase === 'complete' && (
+            <motion.div
+              className="fixed left-1/2 -translate-x-1/2 flex gap-4"
+              style={{ top: 'calc(50% + 340px)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.button
+                className="px-6 py-3 rounded-xl btn-primary flex items-center gap-2 text-base font-semibold"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handlePlayMovie}
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Watch Now
+              </motion.button>
+              
+              <motion.button
+                className="px-6 py-3 rounded-xl btn-secondary flex items-center gap-2 text-base"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRollAgain}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Roll Again
+              </motion.button>
+              
+              <motion.button
+                className="px-6 py-3 rounded-xl btn-ghost text-base"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+              >
+                Close
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Close button */}
         <motion.button
