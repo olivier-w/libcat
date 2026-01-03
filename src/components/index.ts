@@ -12,4 +12,5 @@ export { Toast } from './Toast'
 export { WindowControls } from './WindowControls'
 export { TagManagementModal } from './TagManagementModal'
 export { ColorPicker } from './ColorPicker'
+export { GoldenEnvelope } from './GoldenEnvelope'
 

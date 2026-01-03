@@ -10,6 +10,7 @@ import { ProfileSelector } from './components/ProfileSelector'
 import { Toast } from './components/Toast'
 import { SettingsModal } from './components/SettingsModal'
 import { TagManagementModal } from './components/TagManagementModal'
+import { GoldenEnvelope } from './components/GoldenEnvelope'
 import { useToastStore } from './stores/toastStore'
 
 function App() {
@@ -20,12 +21,14 @@ function App() {
     loadTags, 
     isScanning, 
     setScanProgress, 
-    setIsScanning 
+    setIsScanning,
+    setSelectedMovie
   } = useLibraryStore()
   const addToast = useToastStore((state) => state.addToast)
   const [showScanModal, setShowScanModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showTagManager, setShowTagManager] = useState(false)
+  const [showGoldenEnvelope, setShowGoldenEnvelope] = useState(false)
   const scanCancelledRef = useRef(false)
 
   useEffect(() => {
@@ -126,6 +129,7 @@ function App() {
           onAddFolder={handleAddFolder} 
           onOpenSettings={() => setShowSettings(true)} 
           onOpenTagManager={() => setShowTagManager(true)}
+          onPickForMe={() => setShowGoldenEnvelope(true)}
         />
 
         {/* Center - Gallery */}
@@ -152,6 +156,17 @@ function App() {
       {/* Tag Management Modal */}
       <AnimatePresence>
         <TagManagementModal isOpen={showTagManager} onClose={() => setShowTagManager(false)} />
+      </AnimatePresence>
+
+      {/* Golden Envelope - Random Movie Picker */}
+      <AnimatePresence>
+        {showGoldenEnvelope && (
+          <GoldenEnvelope 
+            isOpen={showGoldenEnvelope} 
+            onClose={() => setShowGoldenEnvelope(false)}
+            onSelectMovie={(movie) => setSelectedMovie(movie)}
+          />
+        )}
       </AnimatePresence>
 
       {/* Toast Notifications */}

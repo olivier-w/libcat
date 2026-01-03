@@ -274,6 +274,10 @@ export function DetailsPanel() {
 
   const getPosterUrl = () => {
     if (movie.tmdb_poster_path) {
+      // Check if it's a TMDB path (starts with /) or a local cached path
+      if (movie.tmdb_poster_path.startsWith('/')) {
+        return `https://image.tmdb.org/t/p/w500${movie.tmdb_poster_path}`
+      }
       return `local-file:///${movie.tmdb_poster_path.replace(/\\/g, '/')}`
     }
     if (movie.thumbnail_path) {
@@ -460,7 +464,7 @@ export function DetailsPanel() {
       <div className="flex-1 flex flex-col overflow-y-auto">
         {/* Poster with Ken Burns */}
         <div 
-          className="relative aspect-[2/3] bg-obsidian-500 overflow-hidden group"
+          className="relative aspect-[2/3] min-h-[200px] flex-shrink-0 bg-obsidian-500 overflow-hidden group"
           onMouseEnter={() => setIsPosterHovered(true)}
           onMouseLeave={() => setIsPosterHovered(false)}
         >
