@@ -129,12 +129,11 @@ function App() {
           onAddFolder={handleAddFolder} 
           onOpenSettings={() => setShowSettings(true)} 
           onOpenTagManager={() => setShowTagManager(true)}
-          onPickForMe={() => setShowGoldenEnvelope(true)}
         />
 
         {/* Center - Gallery */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <Gallery />
+          <Gallery onPickForMe={() => setShowGoldenEnvelope(true)} />
         </main>
 
         {/* Right - Details Panel */}

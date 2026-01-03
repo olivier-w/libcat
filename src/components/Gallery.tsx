@@ -5,6 +5,10 @@ import { ListView } from './ListView'
 import { VirtualizedGallery } from './VirtualizedGallery'
 import type { SortColumn } from '../types'
 
+interface GalleryProps {
+  onPickForMe?: () => void
+}
+
 const SORT_OPTIONS: { value: SortColumn; label: string; icon: JSX.Element }[] = [
   { 
     value: 'title', 
@@ -28,7 +32,7 @@ const SORT_OPTIONS: { value: SortColumn; label: string; icon: JSX.Element }[] = 
   },
 ]
 
-export function Gallery() {
+export function Gallery({ onPickForMe }: GalleryProps) {
   const { 
     filteredMovies, 
     activeFilter, 
@@ -147,6 +151,76 @@ export function Gallery() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Pick for Me Button - Only show on Unwatched filter */}
+          <AnimatePresence>
+            {activeFilter === 'unwatched' && onPickForMe && sortedMovies.length > 0 && (
+              <motion.button
+                onClick={onPickForMe}
+                className="surprise-me-btn group relative flex items-center gap-2.5 px-4 py-2 rounded-lg overflow-hidden"
+                initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                title="Pick a random unwatched movie"
+              >
+                {/* Animated shimmer background */}
+                <div className="surprise-me-shimmer absolute inset-0 pointer-events-none" />
+                
+                {/* Envelope icon with subtle animation */}
+                <motion.div
+                  className="relative z-10"
+                  animate={{ 
+                    rotateY: [0, 10, -10, 0],
+                  }}
+                  transition={{ 
+                    duration: 4, 
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                    ease: 'easeInOut'
+                  }}
+                >
+                  <svg className="w-4 h-4 text-amber-400 group-hover:text-amber-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </motion.div>
+                
+                {/* Text */}
+                <span className="relative z-10 text-sm font-semibold text-amber-200/90 group-hover:text-amber-100 transition-colors whitespace-nowrap">
+                  Surprise Me
+                </span>
+                
+                {/* Sparkle decorations */}
+                <motion.div
+                  className="absolute top-1 right-2 w-1 h-1 bg-amber-300 rounded-full"
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1, 0.5],
+                  }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity,
+                    repeatDelay: 1,
+                  }}
+                />
+                <motion.div
+                  className="absolute bottom-1.5 right-6 w-0.5 h-0.5 bg-amber-200 rounded-full"
+                  animate={{ 
+                    opacity: [0, 0.8, 0],
+                    scale: [0.5, 1.2, 0.5],
+                  }}
+                  transition={{ 
+                    duration: 2.5, 
+                    repeat: Infinity,
+                    repeatDelay: 0.5,
+                    delay: 0.8,
+                  }}
+                />
+              </motion.button>
+            )}
+          </AnimatePresence>
+
           {/* Sort Controls */}
           <div className="relative">
             <div className="flex items-center">

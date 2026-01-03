@@ -15,10 +15,9 @@ interface SidebarProps {
   onAddFolder: () => void
   onOpenSettings: () => void
   onOpenTagManager?: () => void
-  onPickForMe?: () => void
 }
 
-export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager, onPickForMe }: SidebarProps) {
+export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager }: SidebarProps) {
   const { tags, activeFilter, setActiveFilter, movies, addTagToState, removeTagFromState, updateTagInState, loadMovies } = useLibraryStore()
   const [showCreateTag, setShowCreateTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
@@ -356,58 +355,6 @@ export function Sidebar({ onAddFolder, onOpenSettings, onOpenTagManager, onPickF
             </motion.button>
           ))}
         </nav>
-        
-        {/* Pick for Me Button */}
-        {onPickForMe && (
-          <motion.button
-            onClick={onPickForMe}
-            disabled={filterCounts.unwatched === 0}
-            className={`w-full mt-3 flex items-center rounded-xl transition-all min-h-[48px] pick-for-me-btn ${
-              isCollapsed ? 'justify-center px-0' : 'gap-3 px-4'
-            } ${filterCounts.unwatched === 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
-            whileHover={filterCounts.unwatched > 0 ? { scale: 1.02 } : {}}
-            whileTap={filterCounts.unwatched > 0 ? { scale: 0.98 } : {}}
-            title={isCollapsed ? `Pick for Me${filterCounts.unwatched === 0 ? ' (No unwatched movies)' : ''}` : undefined}
-          >
-            {/* Golden envelope icon */}
-            <span className="flex-shrink-0 text-bronze-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </span>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div 
-                  className="flex-1 text-left"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <span className="text-sm font-semibold text-bronze-400">Pick for Me</span>
-                  <span className="block text-2xs text-smoke-500">Random unwatched movie</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {!isCollapsed && (
-              <motion.span 
-                className="text-bronze-400"
-                animate={{ 
-                  rotate: [0, 10, -10, 0],
-                }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity,
-                  repeatDelay: 3,
-                }}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.span>
-            )}
-          </motion.button>
-        )}
       </motion.div>
 
       {/* Divider */}
