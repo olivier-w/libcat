@@ -13,4 +13,5 @@ export { WindowControls } from './WindowControls'
 export { TagManagementModal } from './TagManagementModal'
 export { ColorPicker } from './ColorPicker'
 export { GoldenEnvelope } from './GoldenEnvelope'
+export { ContextMenu, useContextMenu, type ContextMenuItem, type ContextMenuProps, type ContextMenuState } from './ContextMenu'
 

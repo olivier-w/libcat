@@ -9,6 +9,9 @@ import { TMDBService } from './services/tmdb'
 
 const isDev = process.env.NODE_ENV === 'development'
 
+// Set app name for taskbar/dock display
+app.setName('libcat')
+
 let mainWindow: BrowserWindow | null = null
 let db: DatabaseService | null = null
 let scanner: FileScanner

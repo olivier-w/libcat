@@ -967,3 +967,25 @@ input:focus, button:focus-visible, select:focus {
 .surprise-me-btn:hover .surprise-me-shimmer {
   animation-duration: 2s;
 }
+
+/* ============================================
+   CONTEXT MENU
+   ============================================ */
+
+.context-menu {
+  transform-origin: top left;
+}
+
+.context-menu-item {
+  position: relative;
+  outline: none;
+}
+
+/* Icon transitions */
+.context-menu-item svg {
+  transition: transform 0.15s ease;
+}
+
+.context-menu-item:hover:not(:disabled) svg {
+  transform: scale(1.08);
+}
