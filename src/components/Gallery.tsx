@@ -151,9 +151,9 @@ export function Gallery({ onPickForMe }: GalleryProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Pick for Me Button - Only show on Unwatched filter */}
+          {/* Pick for Me Button - Show on any filter with movies */}
           <AnimatePresence>
-            {activeFilter === 'unwatched' && onPickForMe && sortedMovies.length > 0 && (
+            {onPickForMe && sortedMovies.length > 0 && (
               <motion.button
                 onClick={onPickForMe}
                 className="surprise-me-btn group relative flex items-center gap-2.5 px-4 py-2 rounded-lg overflow-hidden"
@@ -163,7 +163,7 @@ export function Gallery({ onPickForMe }: GalleryProps) {
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                title="Pick a random unwatched movie"
+                title="Pick a random movie from current view"
               >
                 {/* Animated shimmer background */}
                 <div className="surprise-me-shimmer absolute inset-0 pointer-events-none" />
