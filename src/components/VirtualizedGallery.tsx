@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef, useLayoutEffect, type CSSProperties, type ReactElement } from 'react'
+import { memo, useState, useRef, useLayoutEffect, forwardRef, type CSSProperties, type ReactElement } from 'react'
 import { Grid, type CellComponentProps } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
@@ -19,7 +19,24 @@ interface CellData {
   columnCount: number
   columnWidth: number
   cardHeight: number
+  horizontalOffset: number
 }
+
+// Inner element with padding for the scroll content
+const InnerElement = forwardRef<HTMLDivElement, { style: CSSProperties; children?: React.ReactNode }>(
+  ({ style, ...rest }, ref) => (
+    <div
+      ref={ref}
+      style={{
+        ...style,
+        // Extend scroll content to include padding space
+        width: `${parseFloat(String(style.width)) + PADDING * 2}px`,
+        height: `${parseFloat(String(style.height)) + PADDING * 2}px`,
+      }}
+      {...rest}
+    />
+  )
+)
 
 // Cell component for the Grid
 function CellComponent({
@@ -30,6 +47,7 @@ function CellComponent({
   columnCount,
   columnWidth,
   cardHeight,
+  horizontalOffset,
 }: CellComponentProps<CellData>): ReactElement | null {
   const { selectedIds, toggleMovieSelection, updateMovieInState } = useLibraryStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -38,7 +56,7 @@ function CellComponent({
   
   // Handle empty cells in the last row
   if (index >= movies.length) {
-    return <div style={style} />
+    return null
   }
   
   const movie = movies[index]
@@ -80,8 +98,13 @@ function CellComponent({
   
   const posterUrl = getPosterUrl()
   
-  // Apply padding inside the cell for gap effect
+  // Apply gap inside the cell and offset for padding
   const cellPadding = ITEM_GAP / 2
+  const adjustedStyle: CSSProperties = {
+    ...style,
+    left: (parseFloat(String(style.left)) || 0) + horizontalOffset,
+    top: (parseFloat(String(style.top)) || 0) + PADDING,
+  }
   const innerStyle: CSSProperties = {
     position: 'absolute',
     left: cellPadding,
@@ -91,7 +114,7 @@ function CellComponent({
   }
   
   return (
-    <div style={style}>
+    <div style={adjustedStyle}>
       <div style={innerStyle}>
         <motion.div
           onClick={handleClick}
@@ -313,8 +336,10 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
     }
   }, [])
   
-  // Calculate responsive column count based on container width
+  // Calculate available content width (accounting for padding)
   const contentWidth = Math.max(0, dimensions.width - PADDING * 2)
+  
+  // Calculate responsive column count based on available width
   const columnCount = Math.max(1, Math.floor((contentWidth + ITEM_GAP) / (ITEM_MIN_WIDTH + ITEM_GAP)))
   const columnWidth = contentWidth / columnCount
   const rowCount = Math.ceil(movies.length / columnCount)
@@ -324,11 +349,15 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
   const cardHeight = cardWidth * POSTER_ASPECT_RATIO
   const rowHeight = cardHeight + ITEM_GAP
   
+  // Horizontal offset for left padding
+  const horizontalOffset = PADDING
+  
   const cellProps: CellData = {
     movies,
     columnCount,
     columnWidth,
     cardHeight,
+    horizontalOffset,
   }
   
   return (
@@ -351,7 +380,7 @@ export function VirtualizedGallery({ movies }: VirtualizedGalleryProps) {
           width={dimensions.width}
           height={dimensions.height}
           overscanCount={2}
-          style={{ padding: PADDING }}
+          innerElementType={InnerElement}
         />
       )}
     </div>
