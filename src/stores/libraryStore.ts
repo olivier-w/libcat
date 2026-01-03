@@ -250,22 +250,33 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const queryTerms = searchQuery.toLowerCase().split(/\s+/).filter(t => t)
       
       // Separate terms into tag matches and text search terms
-      const matchedTagIds: number[] = []
+      const tagTerms: string[] = []
       const textTerms: string[] = []
       
       for (const term of queryTerms) {
-        const matchingTag = tags.find(t => t.name.toLowerCase() === term)
-        if (matchingTag) {
-          matchedTagIds.push(matchingTag.id)
+        // First, check if term matches a tag in the store's tags list
+        let isTagMatch = tags.some(t => t.name.toLowerCase().includes(term))
+        
+        // Fallback: If not found in store's tags, check if any movie has a matching tag
+        if (!isTagMatch) {
+          isTagMatch = filtered.some(movie => 
+            movie.tags?.some(t => t.name.toLowerCase().includes(term))
+          )
+        }
+        
+        if (isTagMatch) {
+          tagTerms.push(term)
         } else {
           textTerms.push(term)
         }
       }
       
-      // Filter by ALL matched tags (AND logic)
-      if (matchedTagIds.length > 0) {
+      // Filter by ALL matched tag terms (AND logic) - search movie.tags directly by name
+      if (tagTerms.length > 0) {
         filtered = filtered.filter(movie =>
-          matchedTagIds.every(tagId => movie.tags?.some(t => t.id === tagId))
+          tagTerms.every(term => 
+            movie.tags?.some(t => t.name.toLowerCase().includes(term))
+          )
         )
       }
       
