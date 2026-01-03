@@ -307,8 +307,9 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
             {(phase === 'entering' || phase === 'waiting' || phase === 'opening') && (
               <motion.div
                 key="envelope"
-                className="relative cursor-pointer envelope-container"
+                className={`relative cursor-pointer ${phase !== 'opening' ? 'envelope-container' : ''}`}
                 data-waiting={phase === 'waiting' ? 'true' : 'false'}
+                style={phase === 'opening' ? { opacity: 1 } : undefined}
                 exit={{ opacity: 0, scale: 0.95, y: -20 }}
                 transition={{ duration: 0.3, ease: 'easeIn' }}
                 onClick={handleEnvelopeClick}
