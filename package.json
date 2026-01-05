@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.node.json && vite build",
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron:start\"",
+    "electron:dev": "concurrently \"bun run dev\" \"wait-on http://localhost:5173 && bun run electron:start\"",
     "electron:start": "cross-env NODE_ENV=development electron .",
-    "electron:build": "npm run build && electron-builder",
+    "electron:build": "bun run build && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-rebuild",
     "rebuild": "electron-rebuild"

@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A beautiful Windows desktop app for organizing and tagging your local movie collection.
+A beautiful desktop app for organizing and tagging your local movie collection.
 
-![LibCat Screenshot](docs/screenshot.png)
+> **Note**: This project has only been tested on Windows 10 so far.
 
 ## Features
 
@@ -35,43 +35,43 @@ A beautiful Windows desktop app for organizing and tagging your local movie coll
 
 ### Prerequisites
 
-- **Node.js 18+** - [Download](https://nodejs.org/)
+- **Bun** - [Download](https://bun.sh/) (or Node.js 18+ as fallback)
 - **FFmpeg** - Required for thumbnail generation
   - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
   - Or install via Chocolatey: `choco install ffmpeg`
   - Or install via Scoop: `scoop install ffmpeg`
 - **Windows Build Tools** (for native dependencies)
-  - Run as Administrator: `npm install --global windows-build-tools`
+  - Run as Administrator: `bun install --global windows-build-tools`
   - Or install Visual Studio Build Tools with C++ workload
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/libcat.git
+git clone https://github.com/olivier-w/libcat.git
 cd libcat
 
 # Install dependencies
-npm install
+bun install
 
 # Start development mode
-npm run electron:dev
+bun run electron:dev
 ```
 
 ### Development Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server only |
-| `npm run electron:dev` | Start full Electron app in dev mode |
-| `npm run build` | Build the renderer (Vite) |
-| `npm run electron:build` | Build production installer |
+| `bun run dev` | Start Vite dev server only |
+| `bun run electron:dev` | Start full Electron app in dev mode |
+| `bun run build` | Build the renderer (Vite) |
+| `bun run electron:build` | Build production installer |
 
 ### Building for Production
 
 ```bash
 # Build Windows installer
-npm run electron:build
+bun run electron:build
 ```
 
 The installer will be created in the `release` folder as `libcat-{version}-Setup.exe`.
@@ -82,10 +82,10 @@ If you encounter errors with native modules (better-sqlite3):
 
 ```bash
 # Rebuild native modules for Electron
-npm run rebuild
+bun run rebuild
 
 # Or manually rebuild
-npx electron-rebuild
+bunx electron-rebuild
 ```
 
 ## Usage
@@ -135,7 +135,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/my-feature`
 3. Make your changes
-4. Run the app to test: `npm run electron:dev`
+4. Run the app to test: `bun run electron:dev`
 5. Commit your changes: `git commit -m 'Add my feature'`
 6. Push to your fork: `git push origin feature/my-feature`
 7. Open a Pull Request

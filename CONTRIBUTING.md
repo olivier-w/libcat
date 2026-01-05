@@ -40,7 +40,7 @@ Please be respectful and constructive in all interactions. We welcome contributo
 
 ### Prerequisites
 
-- Node.js 18+
+- Bun (or Node.js 18+ as fallback)
 - FFmpeg installed and in PATH
 - Windows Build Tools (for native dependencies)
 
@@ -48,14 +48,14 @@ Please be respectful and constructive in all interactions. We welcome contributo
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/libcat.git
+git clone https://github.com/olivier-w/libcat.git
 cd libcat
 
 # Install dependencies
-npm install
+bun install
 
 # Start development mode
-npm run electron:dev
+bun run electron:dev
 ```
 
 ### Project Structure
