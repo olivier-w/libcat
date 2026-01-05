@@ -1,4 +1,4 @@
-# LibCat - Local Media Library Manager
+# libcat - Local Media Library Manager
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -178,7 +178,7 @@ Each profile has its own folder containing `libcat.db` (database) and `thumbnail
 1. Create an account at [themoviedb.org](https://www.themoviedb.org/)
 2. Go to Settings > API
 3. Request an API key (choose "Developer" for personal use)
-4. Copy your API key and paste it in LibCat Settings
+4. Copy your API key and paste it in libcat Settings
 
 ## License
 

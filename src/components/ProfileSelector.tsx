@@ -191,7 +191,7 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
           </motion.div>
           
           <h1 className="text-4xl font-heading font-bold text-pearl-100 mb-3 tracking-tight">
-            Welcome to LibCat
+            Welcome to libcat
           </h1>
           <p className="text-smoke-500 text-lg">
             Select a profile to continue

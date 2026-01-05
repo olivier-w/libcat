@@ -1,6 +1,6 @@
-# Contributing to LibCat
+# Contributing to libcat
 
-Thank you for your interest in contributing to LibCat! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to libcat! This document provides guidelines and information for contributors.
 
 ## Code of Conduct
 
@@ -152,4 +152,4 @@ If you have questions about contributing, feel free to open an issue with the "q
 
 ## License
 
-By contributing to LibCat, you agree that your contributions will be licensed under the MIT License.
+By contributing to libcat, you agree that your contributions will be licensed under the MIT License.

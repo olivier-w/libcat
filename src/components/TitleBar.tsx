@@ -38,7 +38,7 @@ export function TitleBar() {
         </motion.div>
         
         <h1 className="font-heading font-semibold text-pearl-200 text-sm tracking-wide">
-          LibCat
+          libcat
         </h1>
         
         {/* Profile Badge */}
