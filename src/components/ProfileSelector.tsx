@@ -155,18 +155,8 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden relative">
-      {/* Cinematic Background */}
-      <div className="absolute inset-0 bg-obsidian-700">
-        {/* Radial gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(196,127,90,0.08)_0%,transparent_60%)]" />
-        {/* Top vignette */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-obsidian-950/50 to-transparent" />
-        {/* Bottom vignette */}
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-obsidian-950/50 to-transparent" />
-        {/* Side vignettes */}
-        <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-obsidian-950/30 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-obsidian-950/30 to-transparent" />
-      </div>
+      {/* Background */}
+      <div className="absolute inset-0 bg-obsidian-700" />
 
       {/* Floating particles */}
       <FloatingParticles />
