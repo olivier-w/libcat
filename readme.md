@@ -142,11 +142,11 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## Roadmap
 
-- [ ] Add duration display to preview pane
-- [ ] Collapsible sidebars
-- [ ] Context menus for movies (edit, remove, play, open location)
+- [x] Add duration display to preview pane
+- [x] Collapsible sidebars
+- [x] Context menus for movies (edit, remove, play, open location)
 - [ ] Import/export library & tags
-- [ ] Fuzzy search for file names
+- [x] Fuzzy search for file names
 - [ ] Encrypted storage for password-protected profiles
 
 ## FAQs
