@@ -4,6 +4,9 @@
 
 A beautiful desktop app for organizing and tagging your local movie collection.
 
+<img width="1400" height="900" alt="libcat-gallery" src="https://github.com/user-attachments/assets/6bc915df-10fb-4897-b480-dd71d7343793" />
+
+
 > **Note**: This project has only been tested on Windows 10 so far.
 
 ## Features
@@ -19,6 +22,9 @@ A beautiful desktop app for organizing and tagging your local movie collection.
 - **TMDB Integration**: Fetch movie metadata, posters, and cast information from The Movie Database
 - **Notes & Metadata**: Add year, notes, and track watched status
 - **Multiple Profiles**: Create separate libraries with optional password protection
+
+<img width="1400" height="900" alt="libcat-surprise-selection" src="https://github.com/user-attachments/assets/e9c0fe4f-c1d2-4eae-80ec-a8757c222b5a" />
+
 
 ## Tech Stack
 
