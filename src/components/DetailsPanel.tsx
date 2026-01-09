@@ -453,6 +453,22 @@ export function DetailsPanel() {
     return `${minutes}m ${secs}s`
   }
 
+  const formatDate = (dateString: string): string => {
+    // SQLite CURRENT_TIMESTAMP is in UTC but without timezone indicator
+    // Append 'Z' to tell JavaScript to parse it as UTC
+    const date = new Date(dateString.replace(' ', 'T') + 'Z')
+    const dateStr = date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    const timeStr = date.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit'
+    })
+    return `${dateStr}, ${timeStr}`
+  }
+
   return (
     <motion.aside 
       className="w-80 glass border-l border-smoke-900/30 flex flex-col overflow-hidden"
@@ -726,6 +742,14 @@ export function DetailsPanel() {
                 </p>
               </div>
             )}
+            <div>
+              <label className="text-2xs text-smoke-600 uppercase tracking-wider block mb-1 font-medium whitespace-nowrap">
+                Added
+              </label>
+              <p className="text-sm text-smoke-400 whitespace-nowrap">
+                {formatDate(movie.created_at)}
+              </p>
+            </div>
           </div>
 
           {/* File Path */}
