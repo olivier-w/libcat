@@ -15,7 +15,7 @@ export function TagPill({ tag, onRemove, onClick, size = 'sm' }: TagPillProps) {
 
   return (
     <motion.span
-      className={`inline-flex items-center rounded-full font-medium transition-all cursor-default group ${sizeClasses}`}
+      className={`inline-flex items-center rounded-full font-medium transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'} group ${sizeClasses}`}
       style={{ 
         backgroundColor: `${tag.color}15`,
         color: tag.color,
