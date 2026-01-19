@@ -210,7 +210,7 @@ function TagDropdownPortal({
 }
 
 export function DetailsPanel() {
-  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState } = useLibraryStore()
+  const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState, setActiveFilter } = useLibraryStore()
   
   const addToast = useToastStore((state) => state.addToast)
   const [isEditing, setIsEditing] = useState(false)
@@ -676,6 +676,7 @@ export function DetailsPanel() {
                     <TagPill
                       key={tag.id}
                       tag={tag}
+                      onClick={() => setActiveFilter(tag.id)}
                       onRemove={() => handleRemoveTag(tag.id)}
                     />
                   ))
