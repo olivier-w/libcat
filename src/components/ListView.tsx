@@ -2,7 +2,9 @@ import { useMemo, useCallback, useRef, useLayoutEffect, useState, type ReactElem
 import { List } from 'react-window'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useToastStore } from '../stores/toastStore'
 import { ContextMenu, useContextMenu, type ContextMenuItem } from './ContextMenu'
+import { DeleteConfirmationModal } from './DeleteConfirmationModal'
 import type { Movie, Tag, SortColumn } from '../types'
 
 // Row height - fixed for virtualization performance
@@ -205,6 +207,7 @@ export function ListView({ sortedMovies }: ListViewProps) {
     setSortColumn,
     setSortDirection,
   } = useLibraryStore()
+  const addToast = useToastStore((state) => state.addToast)
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerHeight, setContainerHeight] = useState(600)
 
@@ -212,6 +215,8 @@ export function ListView({ sortedMovies }: ListViewProps) {
   
   // Context menu state
   const movieContextMenu = useContextMenu<Movie>()
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // Handle context menu open - if multiple movies selected, use those, otherwise use clicked movie
   const handleContextMenu = useCallback((e: React.MouseEvent, movie: Movie) => {
@@ -397,24 +402,35 @@ export function ListView({ sortedMovies }: ListViewProps) {
     }
   }, [targetMovies])
   
-  const handleRemoveFromLibrary = useCallback(async () => {
-    const count = targetMovies.length
-    const message = count > 1
-      ? `Are you sure you want to remove ${count} movies from your library?`
-      : `Are you sure you want to remove "${targetMovies[0]?.title || 'this movie'}" from your library?`
-    
-    if (!confirm(message)) return
-    
+  const handleRemoveFromLibrary = useCallback(() => {
+    if (targetMovies.length === 0) return
+    setShowDeleteModal(true)
+  }, [targetMovies])
+
+  const handleConfirmRemoveFromLibrary = useCallback(async () => {
+    if (targetMovies.length === 0) return
     const ids = targetMovies.map(m => m.id)
+    const isBulkDelete = targetMovies.length > 1
+    const primaryTitle = targetMovies[0]?.title || 'Movie'
+    setIsDeleting(true)
     try {
       for (const id of ids) {
         await window.api.deleteMovie(id)
       }
       removeMoviesFromState(ids)
+      setShowDeleteModal(false)
+      if (isBulkDelete) {
+        addToast(`${ids.length} movies removed from your library.`, 'success')
+      } else {
+        addToast(`"${primaryTitle}" has been removed from your library.`, 'success')
+      }
     } catch (error) {
       console.error('Failed to remove movies:', error)
+      addToast('Failed to remove movie(s) from library. Please try again.', 'error')
+    } finally {
+      setIsDeleting(false)
     }
-  }, [targetMovies, removeMoviesFromState])
+  }, [targetMovies, removeMoviesFromState, addToast])
   
   // Build context menu items
   const contextMenuItems: ContextMenuItem[] = [
@@ -558,6 +574,15 @@ export function ListView({ sortedMovies }: ListViewProps) {
           ) : undefined}
         />
       )}
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => !isDeleting && setShowDeleteModal(false)}
+        onConfirm={handleConfirmRemoveFromLibrary}
+        movieTitle={isMultiSelect ? undefined : targetMovies[0]?.title}
+        movieCount={isMultiSelect ? targetMovies.length : undefined}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 }
