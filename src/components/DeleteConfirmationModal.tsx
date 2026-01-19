@@ -94,7 +94,7 @@ export function DeleteConfirmationModal({
 
             {/* Content */}
             <div className="p-6">
-              <p className="text-smoke-300 leading-relaxed">{message}</p>
+              <p className="text-smoke-300 leading-relaxed break-words whitespace-normal">{message}</p>
               <p className="text-sm text-smoke-600 mt-3">
                 The file will remain on your disk, only the library entry will be removed.
               </p>

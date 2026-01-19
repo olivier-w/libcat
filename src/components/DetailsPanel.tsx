@@ -562,7 +562,7 @@ export function DetailsPanel() {
             </div>
           ) : (
             <div>
-              <h2 className="font-heading text-lg font-semibold text-pearl-100 leading-tight tracking-tight">
+              <h2 className="font-heading text-lg font-semibold text-pearl-100 leading-tight tracking-tight break-words">
                 {movie.title || 'Untitled'}
               </h2>
               {movie.year && (
@@ -1093,7 +1093,7 @@ function BulkActionsPanel() {
             {selectedMovies.slice(0, 8).map((movie) => (
               <span
                 key={movie.id}
-                className="text-xs bg-obsidian-400/50 text-smoke-300 px-2 py-1 rounded-md truncate max-w-[100px]"
+                className="text-xs bg-obsidian-400/50 text-smoke-300 px-2 py-1 rounded-md max-w-[100px] break-words whitespace-normal"
                 title={movie.title || movie.file_path}
               >
                 {movie.title || 'Untitled'}
