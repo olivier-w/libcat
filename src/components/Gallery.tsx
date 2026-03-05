@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 import { ListView } from './ListView'
 import { VirtualizedGallery } from './VirtualizedGallery'
 import type { SortColumn } from '../types'
@@ -33,6 +34,7 @@ const SORT_OPTIONS: { value: SortColumn; label: string; icon: JSX.Element }[] = 
 ]
 
 export function Gallery({ onPickForMe }: GalleryProps) {
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
   const { 
     filteredMovies, 
     activeFilter, 
@@ -161,7 +163,7 @@ export function Gallery({ onPickForMe }: GalleryProps) {
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.9, x: 20 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={lowPowerEnabled ? undefined : { scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 title="Pick a random movie from current view"
               >
@@ -171,14 +173,12 @@ export function Gallery({ onPickForMe }: GalleryProps) {
                 {/* Envelope icon with subtle animation */}
                 <motion.div
                   className="relative z-10"
-                  animate={{ 
-                    rotateY: [0, 10, -10, 0],
-                  }}
-                  transition={{ 
-                    duration: 4, 
+                  animate={lowPowerEnabled ? undefined : { rotateY: [0, 10, -10, 0] }}
+                  transition={lowPowerEnabled ? undefined : {
+                    duration: 4,
                     repeat: Infinity,
                     repeatDelay: 2,
-                    ease: 'easeInOut'
+                    ease: 'easeInOut',
                   }}
                 >
                   <svg className="w-4 h-4 text-amber-400 group-hover:text-amber-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,31 +192,35 @@ export function Gallery({ onPickForMe }: GalleryProps) {
                 </span>
                 
                 {/* Sparkle decorations */}
-                <motion.div
-                  className="absolute top-1 right-2 w-1 h-1 bg-amber-300 rounded-full"
-                  animate={{ 
-                    opacity: [0, 1, 0],
-                    scale: [0.5, 1, 0.5],
-                  }}
-                  transition={{ 
-                    duration: 2, 
-                    repeat: Infinity,
-                    repeatDelay: 1,
-                  }}
-                />
-                <motion.div
-                  className="absolute bottom-1.5 right-6 w-0.5 h-0.5 bg-amber-200 rounded-full"
-                  animate={{ 
-                    opacity: [0, 0.8, 0],
-                    scale: [0.5, 1.2, 0.5],
-                  }}
-                  transition={{ 
-                    duration: 2.5, 
-                    repeat: Infinity,
-                    repeatDelay: 0.5,
-                    delay: 0.8,
-                  }}
-                />
+                {!lowPowerEnabled && (
+                  <>
+                    <motion.div
+                      className="absolute top-1 right-2 w-1 h-1 bg-amber-300 rounded-full"
+                      animate={{
+                        opacity: [0, 1, 0],
+                        scale: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 1,
+                      }}
+                    />
+                    <motion.div
+                      className="absolute bottom-1.5 right-6 w-0.5 h-0.5 bg-amber-200 rounded-full"
+                      animate={{
+                        opacity: [0, 0.8, 0],
+                        scale: [0.5, 1.2, 0.5],
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        repeatDelay: 0.5,
+                        delay: 0.8,
+                      }}
+                    />
+                  </>
+                )}
               </motion.button>
             )}
           </AnimatePresence>

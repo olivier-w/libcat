@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WindowControls } from './WindowControls'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 
 interface Profile {
   id: string
@@ -14,7 +15,9 @@ interface ProfileSelectorProps {
 }
 
 // Floating particles component
-function FloatingParticles() {
+function FloatingParticles({ enabled }: { enabled: boolean }) {
+  if (!enabled) return null
+
   const particles = useMemo(() => 
     Array.from({ length: 20 }, (_, i) => ({
       id: i,
@@ -55,6 +58,11 @@ function FloatingParticles() {
 }
 
 export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
+  const lowPowerOverride = useUIPrefsStore((state) => state.lowPowerOverride)
+  const setLowPowerEnabled = useUIPrefsStore((state) => state.setLowPowerEnabled)
+  const clearLowPowerOverride = useUIPrefsStore((state) => state.clearLowPowerOverride)
+
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -159,7 +167,7 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
       <div className="absolute inset-0 bg-obsidian-700" />
 
       {/* Floating particles */}
-      <FloatingParticles />
+      <FloatingParticles enabled={!lowPowerEnabled} />
 
       {/* Title Bar */}
       <div 
@@ -167,7 +175,29 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <span className="text-xs font-medium text-smoke-600">libcat</span>
-        <WindowControls className="" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} />
+        <div className="flex items-center gap-2 pr-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <button
+            onClick={() => setLowPowerEnabled(!lowPowerEnabled)}
+            className={`px-2.5 h-7 rounded-md text-[11px] font-medium transition-colors ${
+              lowPowerEnabled
+                ? 'bg-bronze-500/20 text-bronze-300 border border-bronze-500/30'
+                : 'bg-obsidian-500/60 text-smoke-400 border border-smoke-800/60 hover:text-pearl-200'
+            }`}
+            title="Toggle Low-Power Mode"
+          >
+            {lowPowerEnabled ? 'Low Power: On' : 'Low Power: Off'}
+          </button>
+          {lowPowerOverride !== 'unset' && (
+            <button
+              onClick={clearLowPowerOverride}
+              className="px-2 h-7 rounded-md text-[11px] text-smoke-500 border border-smoke-800/60 hover:text-pearl-200 hover:bg-obsidian-500/50 transition-colors"
+              title="Use system motion preference"
+            >
+              System
+            </button>
+          )}
+          <WindowControls className="" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} />
+        </div>
       </div>
 
       {/* Main Content */}
@@ -196,6 +226,29 @@ export function ProfileSelector({ onProfileSelected }: ProfileSelectorProps) {
           <p className="text-smoke-500 text-lg">
             Select a profile to continue
           </p>
+
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setLowPowerEnabled(!lowPowerEnabled)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                lowPowerEnabled
+                  ? 'bg-bronze-500/20 text-bronze-300 border-bronze-500/30'
+                  : 'bg-obsidian-500/60 text-smoke-400 border-smoke-800/60 hover:text-pearl-200'
+              }`}
+              title="Toggle Low-Power Mode"
+            >
+              Low-Power Mode: {lowPowerEnabled ? 'On' : 'Off'}
+            </button>
+            {lowPowerOverride !== 'unset' && (
+              <button
+                onClick={clearLowPowerOverride}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-smoke-800/60 text-smoke-500 hover:text-pearl-200 hover:bg-obsidian-500/50 transition-colors"
+                title="Use system motion preference"
+              >
+                System
+              </button>
+            )}
+          </div>
         </motion.div>
 
         {error && (

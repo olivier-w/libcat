@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 import type { Movie } from '../types'
 
 interface GoldenEnvelopeProps {
@@ -42,6 +43,7 @@ const generateDust = (count: number) => {
 }
 
 export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelopeProps) {
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
   const { filteredMovies } = useLibraryStore()
   const [phase, setPhase] = useState<Phase>('entering')
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
@@ -216,7 +218,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         <div className="spotlight-cone" />
         
         {/* Dust particles - using CSS animation for 60fps */}
-        {dustParticles.map((particle) => (
+        {!lowPowerEnabled && dustParticles.map((particle) => (
           <div
             key={particle.id}
             className="dust-particle"
@@ -357,10 +359,10 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                           background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)',
                           backgroundSize: '200% 100%',
                         }}
-                        animate={{
+                        animate={lowPowerEnabled ? undefined : {
                           backgroundPosition: ['200% 0', '-200% 0'],
                         }}
-                        transition={{
+                        transition={lowPowerEnabled ? undefined : {
                           duration: 2,
                           repeat: Infinity,
                           repeatDelay: 1,
@@ -422,11 +424,11 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                       opacity: phase === 'opening' ? 0 : 1,
                       scale: phase === 'opening' ? 0.3 : 1,
                       y: phase === 'opening' ? -20 : 0,
-                      rotate: phase === 'waiting' ? [0, 3, -3, 0] : 0,
+                      rotate: !lowPowerEnabled && phase === 'waiting' ? [0, 3, -3, 0] : 0,
                     }}
                     transition={{ 
                       duration: 0.4,
-                      rotate: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' }
+                      rotate: lowPowerEnabled ? undefined : { duration: 2.5, repeat: Infinity, ease: 'easeInOut' }
                     }}
                   >
                     {/* Seal emboss effect */}
@@ -518,7 +520,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
                       }}
                       transition={{ delay: 0.3, duration: 0.5 }}
                       onClick={handlePosterClick}
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={lowPowerEnabled ? undefined : { scale: 1.05 }}
                       whileTap={{ scale: 0.98 }}
                       title="Click to view details"
                     >
@@ -620,8 +622,8 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
               </p>
               <motion.p 
                 className="text-pearl-200/80 text-lg font-medium tracking-wide"
-                animate={{ opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                animate={lowPowerEnabled ? undefined : { opacity: [0.6, 1, 0.6] }}
+                transition={lowPowerEnabled ? undefined : { duration: 2, repeat: Infinity }}
               >
                 Click to reveal
               </motion.p>
@@ -642,7 +644,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
             >
               <motion.button
                 className="px-6 py-3 rounded-xl btn-primary flex items-center gap-2 text-base font-semibold"
-                whileHover={{ scale: 1.05 }}
+                whileHover={lowPowerEnabled ? undefined : { scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handlePlayMovie}
               >
@@ -654,7 +656,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
               
               <motion.button
                 className="px-6 py-3 rounded-xl btn-secondary flex items-center gap-2 text-base"
-                whileHover={{ scale: 1.05 }}
+                whileHover={lowPowerEnabled ? undefined : { scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleRollAgain}
               >
@@ -671,7 +673,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
         <motion.button
           className="absolute top-6 right-6 w-10 h-10 rounded-full bg-obsidian-500/50 hover:bg-obsidian-400/50 flex items-center justify-center text-smoke-400 hover:text-pearl-200 transition-colors"
           onClick={onClose}
-          whileHover={{ scale: 1.1 }}
+          whileHover={lowPowerEnabled ? undefined : { scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -703,7 +705,7 @@ export function GoldenEnvelope({ isOpen, onClose, onSelectMovie }: GoldenEnvelop
             </p>
             <motion.button
               className="mt-6 px-6 py-3 rounded-xl btn-secondary"
-              whileHover={{ scale: 1.05 }}
+              whileHover={lowPowerEnabled ? undefined : { scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onClose}
             >

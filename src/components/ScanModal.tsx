@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 
 export function ScanModal() {
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
   const { isScanning, scanProgress } = useLibraryStore()
   const [isCancelling, setIsCancelling] = useState(false)
 
@@ -47,14 +49,14 @@ export function ScanModal() {
             {/* Spinning ring */}
             <motion.div
               className="absolute inset-0 rounded-full border-4 border-transparent border-t-bronze-400"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              animate={lowPowerEnabled ? undefined : { rotate: 360 }}
+              transition={lowPowerEnabled ? undefined : { duration: 1, repeat: Infinity, ease: 'linear' }}
             />
             {/* Pulsing inner glow */}
             <motion.div
               className="absolute inset-2 rounded-full bg-bronze-500/10"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              animate={lowPowerEnabled ? undefined : { scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+              transition={lowPowerEnabled ? undefined : { duration: 2, repeat: Infinity }}
             />
             {/* Icon */}
             <div className="absolute inset-0 flex items-center justify-center">
@@ -85,8 +87,8 @@ export function ScanModal() {
                   {/* Shimmer effect */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                    animate={{ x: ['-100%', '200%'] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    animate={lowPowerEnabled ? undefined : { x: ['-100%', '200%'] }}
+                    transition={lowPowerEnabled ? undefined : { duration: 1.5, repeat: Infinity, ease: 'linear' }}
                   />
                 </motion.div>
               </div>
@@ -110,8 +112,8 @@ export function ScanModal() {
               <div className="w-full h-2 bg-obsidian-500 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full w-1/3 bg-gradient-to-r from-obsidian-500 via-bronze-500/30 to-obsidian-500"
-                  animate={{ x: ['-100%', '300%'] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  animate={lowPowerEnabled ? undefined : { x: ['-100%', '300%'] }}
+                  transition={lowPowerEnabled ? undefined : { duration: 1.5, repeat: Infinity, ease: 'linear' }}
                 />
               </div>
             </div>

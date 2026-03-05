@@ -986,3 +986,93 @@ input:focus, button:focus-visible, select:focus {
 .context-menu-item:hover:not(:disabled) svg {
   transform: scale(1.08);
 }
+
+/* ============================================
+   LOW-POWER MODE
+   ============================================ */
+
+[data-low-power='true'] .shimmer,
+[data-low-power='true'] .surprise-me-shimmer,
+[data-low-power='true'] .dust-particle,
+[data-low-power='true'] .particle,
+[data-low-power='true'] .seal-pulse,
+[data-low-power='true'] .typewriter-cursor,
+[data-low-power='true'] .animated-border::before,
+[data-low-power='true'] .pulse-ring::before {
+  animation: none !important;
+}
+
+[data-low-power='true'] .glass,
+[data-low-power='true'] .glass-card,
+[data-low-power='true'] .glass-subtle,
+[data-low-power='true'] .modal-backdrop,
+[data-low-power='true'] .backdrop-blur-sm,
+[data-low-power='true'] .backdrop-blur,
+[data-low-power='true'] .backdrop-blur-md,
+[data-low-power='true'] .backdrop-blur-lg,
+[data-low-power='true'] .backdrop-blur-xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-low-power='true'] .movie-card {
+  transition: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+[data-low-power='true'] .movie-card * {
+  transition: none !important;
+  animation: none !important;
+}
+
+[data-low-power='true'] .movie-card:hover,
+[data-low-power='true'] .movie-card:active {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+[data-low-power='true'] .movie-card-selected,
+[data-low-power='true'] .movie-card-selected:hover {
+  box-shadow: 0 0 0 1px rgba(196, 127, 90, 0.2) !important;
+}
+
+[data-low-power='true'] .thumbnail-image {
+  transition: none !important;
+}
+
+[data-low-power='true'] .ken-burns-container:hover .thumbnail-image.loaded {
+  transform: none !important;
+}
+
+[data-low-power='true'] .surprise-me-btn,
+[data-low-power='true'] .surprise-me-btn:hover {
+  box-shadow: none !important;
+}
+
+[data-low-power='true'] .poster-glow {
+  box-shadow: none !important;
+}
+
+[data-low-power='true'] .context-menu,
+[data-low-power='true'] .context-menu-item {
+  transition: none !important;
+}
+
+[data-low-power='true'] .drop-shadow,
+[data-low-power='true'] .drop-shadow-sm,
+[data-low-power='true'] .drop-shadow-md,
+[data-low-power='true'] .drop-shadow-lg,
+[data-low-power='true'] .drop-shadow-xl,
+[data-low-power='true'] .drop-shadow-2xl {
+  filter: none !important;
+}
+
+[data-low-power='true'] .shadow,
+[data-low-power='true'] .shadow-sm,
+[data-low-power='true'] .shadow-md,
+[data-low-power='true'] .shadow-lg,
+[data-low-power='true'] .shadow-xl,
+[data-low-power='true'] .shadow-2xl {
+  box-shadow: none !important;
+}

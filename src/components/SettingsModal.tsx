@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -9,6 +10,10 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeProfile } = useLibraryStore()
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
+  const lowPowerOverride = useUIPrefsStore((state) => state.lowPowerOverride)
+  const setLowPowerEnabled = useUIPrefsStore((state) => state.setLowPowerEnabled)
+  const clearLowPowerOverride = useUIPrefsStore((state) => state.clearLowPowerOverride)
   const [apiKey, setApiKey] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,6 +88,45 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           {/* Content */}
           <div className="p-6 space-y-6">
+            {/* Performance Section */}
+            <div className="pb-5 border-b border-smoke-800/30">
+              <label className="text-2xs text-smoke-600 uppercase tracking-wider mb-3 block font-medium">
+                Performance
+              </label>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-pearl-200 font-medium">Low-Power Mode</p>
+                  <p className="text-xs text-smoke-600 mt-0.5">
+                    Reduces visual effects and animation to lower GPU usage.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    onClick={() => setLowPowerEnabled(!lowPowerEnabled)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      lowPowerEnabled
+                        ? 'bg-bronze-500/20 text-bronze-300 border-bronze-500/30'
+                        : 'bg-obsidian-500/60 text-smoke-400 border-smoke-800/60 hover:text-pearl-200'
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {lowPowerEnabled ? 'On' : 'Off'}
+                  </motion.button>
+                  {lowPowerOverride !== 'unset' && (
+                    <motion.button
+                      onClick={clearLowPowerOverride}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-smoke-800/60 text-smoke-500 hover:text-pearl-200 hover:bg-obsidian-500/50 transition-colors"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      System
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Profile Password Section */}
             {activeProfile && profileHasPassword && (
               <div className="pb-5 border-b border-smoke-800/30">

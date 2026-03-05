@@ -6,9 +6,9 @@
   "author": "libcat",
   "license": "MIT",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5173 --strictPort",
     "build": "tsc -p tsconfig.node.json && vite build",
-    "electron:dev": "concurrently \"bun run dev\" \"wait-on http://localhost:5173 && bun run electron:start\"",
+    "electron:dev": "bunx concurrently \"bun run dev\" \"bunx wait-on http://localhost:5173 && bun run electron:start\"",
     "electron:start": "cross-env NODE_ENV=development electron .",
     "electron:build": "bun run build && electron-builder",
     "preview": "vite preview",

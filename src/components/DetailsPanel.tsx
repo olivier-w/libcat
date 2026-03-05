@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLibraryStore } from '../stores/libraryStore'
+import { useUIPrefsStore } from '../stores/uiPrefsStore'
 import { useToastStore } from '../stores/toastStore'
 import { TagPill } from './TagPill'
 import { StarRating } from './StarRating'
@@ -210,6 +211,7 @@ function TagDropdownPortal({
 }
 
 export function DetailsPanel() {
+  const lowPowerEnabled = useUIPrefsStore((state) => state.lowPowerEnabled)
   const { selectedMovie, selectedMovies, tags, updateMovieInState, removeMovieFromState, loadMovies, clearSelection, addTagToState, setActiveFilter } = useLibraryStore()
   
   const addToast = useToastStore((state) => state.addToast)
@@ -249,8 +251,8 @@ export function DetailsPanel() {
       <aside className="w-80 glass border-l border-smoke-900/30 flex flex-col items-center justify-center text-center p-6">
         <motion.div 
           className="w-20 h-20 rounded-2xl bg-obsidian-400/30 flex items-center justify-center mb-4 relative"
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          animate={lowPowerEnabled ? undefined : { scale: [1, 1.02, 1] }}
+          transition={lowPowerEnabled ? undefined : { duration: 3, repeat: Infinity }}
         >
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-bronze-500/5 to-transparent" />
           <svg className="w-10 h-10 text-smoke-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
